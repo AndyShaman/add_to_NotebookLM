@@ -505,24 +505,19 @@ async function loadSettings() {
       if (accounts.length > 0) {
         accounts.forEach((acc, index) => {
           const option = document.createElement('option');
-          option.value = index;
-          option.textContent = acc.email || `Account ${index + 1}`;
-          if (index === (storage.selectedAccount || 0)) {
+          option.value = acc.index !== undefined ? acc.index : index;
+          option.textContent = acc.email || acc.name || `Account ${index + 1}`;
+          if ((acc.index !== undefined ? acc.index : index) === (storage.selectedAccount || 0)) {
             option.selected = true;
           }
           settingsAccountSelect.appendChild(option);
         });
       } else {
-        // Default options if no accounts found
-        for (let i = 0; i < 5; i++) {
-          const option = document.createElement('option');
-          option.value = i;
-          option.textContent = `Account ${i + 1}`;
-          if (i === (storage.selectedAccount || 0)) {
-            option.selected = true;
-          }
-          settingsAccountSelect.appendChild(option);
-        }
+        // No accounts found - show single default option
+        const option = document.createElement('option');
+        option.value = 0;
+        option.textContent = 'Default';
+        settingsAccountSelect.appendChild(option);
       }
     }
 

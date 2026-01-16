@@ -134,24 +134,19 @@ async function loadAccounts() {
     if (accounts.length > 0) {
       accounts.forEach((acc, index) => {
         const option = document.createElement('option');
-        option.value = index;
-        option.textContent = acc.email || `Account ${index + 1}`;
-        if (index === selectedAccount) {
+        option.value = acc.index !== undefined ? acc.index : index;
+        option.textContent = acc.email || acc.name || `Account ${index + 1}`;
+        if ((acc.index !== undefined ? acc.index : index) === selectedAccount) {
           option.selected = true;
         }
         accountSelect.appendChild(option);
       });
     } else {
-      // Default options if no accounts found
-      for (let i = 0; i < 5; i++) {
-        const option = document.createElement('option');
-        option.value = i;
-        option.textContent = `Account ${i + 1}`;
-        if (i === selectedAccount) {
-          option.selected = true;
-        }
-        accountSelect.appendChild(option);
-      }
+      // No accounts found - show single default option
+      const option = document.createElement('option');
+      option.value = 0;
+      option.textContent = 'Default';
+      accountSelect.appendChild(option);
     }
   } catch (error) {
     console.error('Error loading accounts:', error);
