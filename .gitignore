@@ -1,5 +1,9 @@
 # Git ignore for Add to NotebookLM extension
 
+# Task tracking (local only)
+TODO.md
+task.md
+
 # Python virtual environment
 .venv/
 
