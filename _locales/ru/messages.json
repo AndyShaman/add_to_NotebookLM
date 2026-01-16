@@ -1,0 +1,166 @@
+{
+  "extName": {
+    "message": "Add to NotebookLM",
+    "description": "Название расширения"
+  },
+  "extDescription": {
+    "message": "Импортируйте YouTube видео и веб-страницы в NotebookLM одним кликом. Массовый импорт, поддержка плейлистов и многое другое.",
+    "description": "Описание расширения"
+  },
+  "popup_title": {
+    "message": "Add to NotebookLM",
+    "description": "Заголовок popup"
+  },
+  "popup_currentPage": {
+    "message": "Текущая страница:",
+    "description": "Метка текущей страницы"
+  },
+  "popup_selectNotebook": {
+    "message": "Добавить в ноутбук:",
+    "description": "Метка выбора ноутбука"
+  },
+  "popup_addToNotebook": {
+    "message": "Добавить в ноутбук",
+    "description": "Текст кнопки добавления"
+  },
+  "popup_createNotebook": {
+    "message": "Создать новый ноутбук",
+    "description": "Кнопка создания ноутбука"
+  },
+  "popup_bulkImport": {
+    "message": "Массовый импорт",
+    "description": "Кнопка массового импорта"
+  },
+  "popup_fromTabs": {
+    "message": "Из вкладок",
+    "description": "Кнопка импорта из вкладок"
+  },
+  "popup_loading": {
+    "message": "Загрузка...",
+    "description": "Состояние загрузки"
+  },
+  "popup_success": {
+    "message": "Успешно добавлено!",
+    "description": "Сообщение об успехе"
+  },
+  "popup_error": {
+    "message": "Не удалось добавить. Попробуйте ещё раз.",
+    "description": "Сообщение об ошибке"
+  },
+  "popup_loginRequired": {
+    "message": "Сначала войдите в NotebookLM",
+    "description": "Сообщение о необходимости входа"
+  },
+  "popup_noNotebooks": {
+    "message": "Ноутбуки не найдены",
+    "description": "Сообщение об отсутствии ноутбуков"
+  },
+  "bulk_title": {
+    "message": "Массовый импорт",
+    "description": "Заголовок страницы массового импорта"
+  },
+  "bulk_description": {
+    "message": "Импортируйте несколько ссылок в NotebookLM за раз",
+    "description": "Описание массового импорта"
+  },
+  "bulk_linksTab": {
+    "message": "Ссылки",
+    "description": "Вкладка ссылок"
+  },
+  "bulk_tabsTab": {
+    "message": "Вкладки браузера",
+    "description": "Вкладка браузерных вкладок"
+  },
+  "bulk_selectNotebook": {
+    "message": "Выберите ноутбук",
+    "description": "Заголовок выбора ноутбука"
+  },
+  "bulk_pasteLinks": {
+    "message": "Вставьте ссылки",
+    "description": "Заголовок секции ссылок"
+  },
+  "bulk_enterUrls": {
+    "message": "Введите URL (по одному на строку):",
+    "description": "Метка поля ввода URL"
+  },
+  "bulk_linksDetected": {
+    "message": "Обнаружено ссылок: $COUNT$",
+    "description": "Счётчик ссылок",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "bulk_importLinks": {
+    "message": "Импортировать ссылки",
+    "description": "Кнопка импорта ссылок"
+  },
+  "bulk_selectTabs": {
+    "message": "Выберите вкладки браузера",
+    "description": "Заголовок секции вкладок"
+  },
+  "bulk_selectAll": {
+    "message": "Выбрать все",
+    "description": "Чекбокс выбора всех"
+  },
+  "bulk_tabsSelected": {
+    "message": "Выбрано вкладок: $COUNT$",
+    "description": "Счётчик вкладок",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "bulk_importTabs": {
+    "message": "Импортировать выбранные вкладки",
+    "description": "Кнопка импорта вкладок"
+  },
+  "bulk_importing": {
+    "message": "Импорт $CURRENT$ из $TOTAL$...",
+    "description": "Прогресс импорта",
+    "placeholders": {
+      "current": {
+        "content": "$1",
+        "example": "5"
+      },
+      "total": {
+        "content": "$2",
+        "example": "10"
+      }
+    }
+  },
+  "bulk_success": {
+    "message": "Успешно импортировано элементов: $COUNT$!",
+    "description": "Сообщение об успехе",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "10"
+      }
+    }
+  },
+  "bulk_openNotebook": {
+    "message": "Открыть ноутбук",
+    "description": "Ссылка на открытие ноутбука"
+  },
+  "youtube_addButton": {
+    "message": "В NotebookLM",
+    "description": "Кнопка добавления на YouTube"
+  },
+  "youtube_addPlaylist": {
+    "message": "Добавить плейлист в NotebookLM",
+    "description": "Кнопка добавления плейлиста"
+  },
+  "youtube_addChannel": {
+    "message": "Добавить видео в NotebookLM",
+    "description": "Кнопка добавления видео канала"
+  },
+  "contextMenu_sendTo": {
+    "message": "Отправить в NotebookLM",
+    "description": "Пункт контекстного меню"
+  }
+}

@@ -1,0 +1,33 @@
+# Git ignore for Add to NotebookLM extension
+
+# Python virtual environment
+.venv/
+
+# macOS
+.DS_Store
+*.DS_Store
+
+# Backup files
+original_icon*.png
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build artifacts
+*.zip
+dist/
+
+# Claude Code
+.claude/
+
+# Local development
+*.log
+*.local
+
+# Test files
+test/
+tests/
+__tests__/

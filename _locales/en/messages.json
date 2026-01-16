@@ -1,0 +1,166 @@
+{
+  "extName": {
+    "message": "Add to NotebookLM",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "Import YouTube videos and web pages to NotebookLM with one click. Bulk import, playlist support, and more.",
+    "description": "Extension description"
+  },
+  "popup_title": {
+    "message": "Add to NotebookLM",
+    "description": "Popup title"
+  },
+  "popup_currentPage": {
+    "message": "Current page:",
+    "description": "Current page label"
+  },
+  "popup_selectNotebook": {
+    "message": "Add to notebook:",
+    "description": "Notebook selection label"
+  },
+  "popup_addToNotebook": {
+    "message": "Add to Notebook",
+    "description": "Add button text"
+  },
+  "popup_createNotebook": {
+    "message": "Create New Notebook",
+    "description": "Create notebook button"
+  },
+  "popup_bulkImport": {
+    "message": "Bulk Import",
+    "description": "Bulk import button"
+  },
+  "popup_fromTabs": {
+    "message": "From Tabs",
+    "description": "Import from tabs button"
+  },
+  "popup_loading": {
+    "message": "Loading...",
+    "description": "Loading state"
+  },
+  "popup_success": {
+    "message": "Added successfully!",
+    "description": "Success message"
+  },
+  "popup_error": {
+    "message": "Failed to add. Please try again.",
+    "description": "Error message"
+  },
+  "popup_loginRequired": {
+    "message": "Please login to NotebookLM first",
+    "description": "Login required message"
+  },
+  "popup_noNotebooks": {
+    "message": "No notebooks found",
+    "description": "No notebooks message"
+  },
+  "bulk_title": {
+    "message": "Bulk Import",
+    "description": "Bulk import page title"
+  },
+  "bulk_description": {
+    "message": "Import multiple links to NotebookLM at once",
+    "description": "Bulk import description"
+  },
+  "bulk_linksTab": {
+    "message": "Links",
+    "description": "Links tab"
+  },
+  "bulk_tabsTab": {
+    "message": "Browser Tabs",
+    "description": "Browser tabs tab"
+  },
+  "bulk_selectNotebook": {
+    "message": "Select Notebook",
+    "description": "Notebook selection title"
+  },
+  "bulk_pasteLinks": {
+    "message": "Paste Links",
+    "description": "Paste links section title"
+  },
+  "bulk_enterUrls": {
+    "message": "Enter URLs (one per line):",
+    "description": "URL input label"
+  },
+  "bulk_linksDetected": {
+    "message": "$COUNT$ links detected",
+    "description": "Links count",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "bulk_importLinks": {
+    "message": "Import Links",
+    "description": "Import links button"
+  },
+  "bulk_selectTabs": {
+    "message": "Select Browser Tabs",
+    "description": "Select tabs section title"
+  },
+  "bulk_selectAll": {
+    "message": "Select All",
+    "description": "Select all checkbox"
+  },
+  "bulk_tabsSelected": {
+    "message": "$COUNT$ tabs selected",
+    "description": "Tabs count",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "bulk_importTabs": {
+    "message": "Import Selected Tabs",
+    "description": "Import tabs button"
+  },
+  "bulk_importing": {
+    "message": "Importing $CURRENT$ of $TOTAL$...",
+    "description": "Import progress",
+    "placeholders": {
+      "current": {
+        "content": "$1",
+        "example": "5"
+      },
+      "total": {
+        "content": "$2",
+        "example": "10"
+      }
+    }
+  },
+  "bulk_success": {
+    "message": "Successfully imported $COUNT$ items!",
+    "description": "Success message",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "10"
+      }
+    }
+  },
+  "bulk_openNotebook": {
+    "message": "Open notebook",
+    "description": "Open notebook link"
+  },
+  "youtube_addButton": {
+    "message": "Add to NotebookLM",
+    "description": "YouTube add button"
+  },
+  "youtube_addPlaylist": {
+    "message": "Add Playlist to NotebookLM",
+    "description": "YouTube add playlist button"
+  },
+  "youtube_addChannel": {
+    "message": "Add Videos to NotebookLM",
+    "description": "YouTube add channel videos button"
+  },
+  "contextMenu_sendTo": {
+    "message": "Send to NotebookLM",
+    "description": "Context menu item"
+  }
+}
