@@ -449,9 +449,23 @@ function hideProgress() {
 }
 
 // Show status message
+let statusTimeout = null;
 function showStatus(type, message) {
+  // Clear any existing timeout
+  if (statusTimeout) {
+    clearTimeout(statusTimeout);
+    statusTimeout = null;
+  }
+
   statusDiv.className = `status visible ${type}`;
   statusDiv.innerHTML = message;
+
+  // Auto-hide after 5 seconds for success/info messages
+  if (type === 'success' || type === 'info') {
+    statusTimeout = setTimeout(() => {
+      hideStatus();
+    }, 5000);
+  }
 }
 
 // Hide status message
