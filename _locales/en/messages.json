@@ -23,6 +23,22 @@
     "message": "Add to Notebook",
     "description": "Add button text"
   },
+  "popup_addVideo": {
+    "message": "Add Video to Notebook",
+    "description": "Add video button text"
+  },
+  "popup_addPlaylist": {
+    "message": "Add Playlist to Notebook",
+    "description": "Add playlist button text"
+  },
+  "popup_addAllPlaylist": {
+    "message": "Add All Playlist Videos",
+    "description": "Add all playlist videos button text"
+  },
+  "popup_addChannelVideos": {
+    "message": "Add Channel Videos to Notebook",
+    "description": "Add channel videos button text"
+  },
   "popup_createNotebook": {
     "message": "Create New Notebook",
     "description": "Create notebook button"
@@ -38,6 +54,10 @@
   "popup_loading": {
     "message": "Loading...",
     "description": "Loading state"
+  },
+  "popup_loadingNotebooks": {
+    "message": "Loading notebooks...",
+    "description": "Loading notebooks"
   },
   "popup_success": {
     "message": "Added successfully!",
@@ -55,6 +75,62 @@
     "message": "No notebooks found",
     "description": "No notebooks message"
   },
+  "popup_tools": {
+    "message": "Tools:",
+    "description": "Tools section label"
+  },
+  "popup_openNotebook": {
+    "message": "Open Notebook",
+    "description": "Open notebook button"
+  },
+  "popup_cancel": {
+    "message": "Cancel",
+    "description": "Cancel button"
+  },
+  "popup_createAndAdd": {
+    "message": "Create & Add",
+    "description": "Create and add button"
+  },
+  "popup_notebookName": {
+    "message": "Notebook name",
+    "description": "Notebook name placeholder"
+  },
+  "popup_extractingVideos": {
+    "message": "Extracting videos from",
+    "description": "Extracting videos message"
+  },
+  "popup_addingVideos": {
+    "message": "Adding videos to notebook...",
+    "description": "Adding videos message"
+  },
+  "popup_noVideosFound": {
+    "message": "No videos found. Try scrolling down to load more videos, then try again.",
+    "description": "No videos found message"
+  },
+  "popup_videosAdded": {
+    "message": "videos added!",
+    "description": "Videos added message"
+  },
+  "popup_addedTo": {
+    "message": "Added to",
+    "description": "Added to prefix"
+  },
+  "popup_playlist": {
+    "message": "Playlist",
+    "description": "Playlist label"
+  },
+  "popup_videoFromPlaylist": {
+    "message": "Video from Playlist",
+    "description": "Video from playlist label"
+  },
+  "popup_clickToAddAll": {
+    "message": "Click to add all videos",
+    "description": "Click to add all hint"
+  },
+  "popup_channel": {
+    "message": "Channel",
+    "description": "Channel label"
+  },
   "bulk_title": {
     "message": "Bulk Import",
     "description": "Bulk import page title"
@@ -70,6 +146,10 @@
   "bulk_tabsTab": {
     "message": "Browser Tabs",
     "description": "Browser tabs tab"
+  },
+  "bulk_settingsTab": {
+    "message": "Settings",
+    "description": "Settings tab"
   },
   "bulk_selectNotebook": {
     "message": "Select Notebook",
@@ -147,6 +227,70 @@
     "message": "Open notebook",
     "description": "Open notebook link"
   },
+  "bulk_createNewNotebook": {
+    "message": "Create New Notebook",
+    "description": "Create new notebook button"
+  },
+  "bulk_loadingTabs": {
+    "message": "Loading tabs...",
+    "description": "Loading tabs message"
+  },
+  "bulk_noTabs": {
+    "message": "No tabs found",
+    "description": "No tabs message"
+  },
+  "bulk_failedToLoad": {
+    "message": "Failed to load tabs",
+    "description": "Failed to load tabs message"
+  },
+  "settings_title": {
+    "message": "Settings",
+    "description": "Settings title"
+  },
+  "settings_language": {
+    "message": "Language:",
+    "description": "Language setting label"
+  },
+  "settings_languageHint": {
+    "message": "Select interface language",
+    "description": "Language setting hint"
+  },
+  "settings_account": {
+    "message": "Google Account:",
+    "description": "Account setting label"
+  },
+  "settings_accountHint": {
+    "message": "Select which Google account to use for NotebookLM",
+    "description": "Account setting hint"
+  },
+  "settings_autoOpen": {
+    "message": "Auto-open notebook after adding sources",
+    "description": "Auto-open setting"
+  },
+  "settings_youtube": {
+    "message": "YouTube Settings",
+    "description": "YouTube settings title"
+  },
+  "settings_youtubeHint": {
+    "message": "For YouTube playlists and channels, use the buttons that appear directly on YouTube pages. The extension will automatically extract video URLs using YouTube's InnerTube API.",
+    "description": "YouTube settings hint"
+  },
+  "settings_about": {
+    "message": "About",
+    "description": "About section title"
+  },
+  "settings_aboutText": {
+    "message": "Import YouTube videos, web pages, and other content directly into Google NotebookLM.",
+    "description": "About text"
+  },
+  "settings_openNotebookLM": {
+    "message": "Open NotebookLM",
+    "description": "Open NotebookLM button"
+  },
+  "settings_accountChanged": {
+    "message": "Account changed. Notebooks reloaded.",
+    "description": "Account changed message"
+  },
   "youtube_addButton": {
     "message": "Add to NotebookLM",
     "description": "YouTube add button"
@@ -162,5 +306,41 @@
   "contextMenu_sendTo": {
     "message": "Send to NotebookLM",
     "description": "Context menu item"
+  },
+  "common_sources": {
+    "message": "sources",
+    "description": "Sources label"
+  },
+  "common_link": {
+    "message": "link",
+    "description": "Link singular"
+  },
+  "common_links": {
+    "message": "links",
+    "description": "Links plural"
+  },
+  "common_tab": {
+    "message": "tab",
+    "description": "Tab singular"
+  },
+  "common_tabs": {
+    "message": "tabs",
+    "description": "Tabs plural"
+  },
+  "common_video": {
+    "message": "video",
+    "description": "Video singular"
+  },
+  "common_videos": {
+    "message": "videos",
+    "description": "Videos plural"
+  },
+  "common_item": {
+    "message": "item",
+    "description": "Item singular"
+  },
+  "common_items": {
+    "message": "items",
+    "description": "Items plural"
   }
 }

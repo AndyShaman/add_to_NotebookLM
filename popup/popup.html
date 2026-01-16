@@ -289,35 +289,35 @@
 
   <!-- Current page info -->
   <div class="current-page">
-    <div class="current-page-title">Current page:</div>
-    <div class="current-page-url" id="current-url">Loading...</div>
+    <div class="current-page-title" data-i18n="popup_currentPage">Current page:</div>
+    <div class="current-page-url" id="current-url" data-i18n="popup_loading">Loading...</div>
   </div>
 
   <!-- Notebook selector -->
-  <div class="section-label">Add to notebook:</div>
+  <div class="section-label" data-i18n="popup_selectNotebook">Add to notebook:</div>
   <select id="notebook-select" class="notebook-select">
-    <option value="">Loading notebooks...</option>
+    <option value="" data-i18n="popup_loadingNotebooks">Loading notebooks...</option>
   </select>
 
   <!-- Action buttons -->
   <button id="add-btn" class="btn btn-primary" disabled>
-    <span>➕</span> Add to Notebook
+    <span>➕</span> <span data-i18n="popup_addToNotebook">Add to Notebook</span>
   </button>
 
   <button id="new-notebook-btn" class="btn btn-secondary">
-    <span>📔</span> Create New Notebook
+    <span>📔</span> <span data-i18n="popup_createNotebook">Create New Notebook</span>
   </button>
 
   <div class="divider"></div>
 
   <!-- Tools section -->
-  <div class="section-label">Tools:</div>
+  <div class="section-label" data-i18n="popup_tools">Tools:</div>
   <div class="tools-section">
     <button id="bulk-btn" class="btn btn-secondary">
-      <span>📦</span> Bulk Import
+      <span>📦</span> <span data-i18n="popup_bulkImport">Bulk Import</span>
     </button>
     <button id="tabs-btn" class="btn btn-secondary">
-      <span>🗂️</span> From Tabs
+      <span>🗂️</span> <span data-i18n="popup_fromTabs">From Tabs</span>
     </button>
   </div>
 
@@ -332,15 +332,16 @@
   <!-- New notebook modal -->
   <div id="new-notebook-modal" class="modal-overlay hidden">
     <div class="modal">
-      <h2>📔 Create New Notebook</h2>
-      <input type="text" id="new-notebook-name" placeholder="Notebook name">
+      <h2>📔 <span data-i18n="popup_createNotebook">Create New Notebook</span></h2>
+      <input type="text" id="new-notebook-name" data-i18n-placeholder="popup_notebookName" placeholder="Notebook name">
       <div class="modal-actions">
-        <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
-        <button id="modal-create" class="btn btn-primary">Create & Add</button>
+        <button id="modal-cancel" class="btn btn-secondary" data-i18n="popup_cancel">Cancel</button>
+        <button id="modal-create" class="btn btn-primary" data-i18n="popup_createAndAdd">Create & Add</button>
       </div>
     </div>
   </div>
 
+  <script src="../lib/i18n.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

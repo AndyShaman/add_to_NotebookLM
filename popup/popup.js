@@ -14,6 +14,11 @@ let youtubePageType = null; // 'video', 'playlist', 'channel', or null
 let youtubeVideoUrls = []; // For playlists/channels
 
 async function init() {
+  // Initialize localization first
+  if (window.I18n) {
+    await I18n.init();
+  }
+
   // Get DOM elements
   notebookSelect = document.getElementById('notebook-select');
   addBtn = document.getElementById('add-btn');
@@ -46,6 +51,14 @@ async function init() {
   await loadNotebooks();
 }
 
+// Get localized string
+function t(key, fallback) {
+  if (window.I18n) {
+    return I18n.get(key) || fallback || key;
+  }
+  return fallback || key;
+}
+
 // Load current tab info
 async function loadCurrentTab() {
   try {
@@ -59,7 +72,7 @@ async function loadCurrentTab() {
       detectYouTubePageType(currentTab.url);
     }
   } catch (error) {
-    currentUrlDiv.textContent = 'Unable to get current page';
+    currentUrlDiv.textContent = t('popup_error', 'Unable to get current page');
   }
 }
 
@@ -79,21 +92,29 @@ function detectYouTubePageType(url) {
   if (url.includes('/playlist')) {
     // Dedicated playlist page
     youtubePageType = 'playlist';
-    addBtn.innerHTML = '<span>📋</span> Add Playlist to Notebook';
-    currentUrlDiv.innerHTML = `📋 <strong>Playlist:</strong> ${currentTab.title.replace(' - YouTube', '')}`;
+    const playlistText = t('popup_addPlaylist', 'Add Playlist to Notebook');
+    addBtn.innerHTML = `<span>📋</span> ${playlistText}`;
+    const playlistLabel = t('popup_playlist', 'Playlist');
+    currentUrlDiv.innerHTML = `📋 <strong>${playlistLabel}:</strong> ${currentTab.title.replace(' - YouTube', '')}`;
   } else if (url.includes('/watch') && hasPlaylistParam) {
     // Watching a video from a playlist
     youtubePageType = 'playlist_video';
-    addBtn.innerHTML = '<span>📋</span> Add All Playlist Videos';
-    currentUrlDiv.innerHTML = `📋 <strong>Video from Playlist</strong> - Click to add all videos`;
+    const addAllText = t('popup_addAllPlaylist', 'Add All Playlist Videos');
+    addBtn.innerHTML = `<span>📋</span> ${addAllText}`;
+    const videoFromPlaylist = t('popup_videoFromPlaylist', 'Video from Playlist');
+    const clickToAdd = t('popup_clickToAddAll', 'Click to add all videos');
+    currentUrlDiv.innerHTML = `📋 <strong>${videoFromPlaylist}</strong> - ${clickToAdd}`;
   } else if (url.includes('/watch')) {
     // Single video
     youtubePageType = 'video';
-    addBtn.innerHTML = '<span>➕</span> Add Video to Notebook';
+    const addVideoText = t('popup_addVideo', 'Add Video to Notebook');
+    addBtn.innerHTML = `<span>➕</span> ${addVideoText}`;
   } else if (url.includes('/@') || url.includes('/channel/') || url.includes('/c/')) {
     youtubePageType = 'channel';
-    addBtn.innerHTML = '<span>📺</span> Add Channel Videos to Notebook';
-    currentUrlDiv.innerHTML = `📺 <strong>Channel:</strong> ${currentTab.title.replace(' - YouTube', '')}`;
+    const addChannelText = t('popup_addChannelVideos', 'Add Channel Videos to Notebook');
+    addBtn.innerHTML = `<span>📺</span> ${addChannelText}`;
+    const channelLabel = t('popup_channel', 'Channel');
+    currentUrlDiv.innerHTML = `📺 <strong>${channelLabel}:</strong> ${currentTab.title.replace(' - YouTube', '')}`;
   }
 }
 
@@ -140,13 +161,15 @@ async function loadAccounts() {
 // Load notebooks list
 async function loadNotebooks() {
   try {
-    showStatus('loading', 'Loading notebooks...');
+    const loadingText = t('popup_loadingNotebooks', 'Loading notebooks...');
+    showStatus('loading', loadingText);
 
     const response = await sendMessage({ cmd: 'list-notebooks' });
 
     if (response.error) {
       showStatus('error', response.error);
-      notebookSelect.innerHTML = '<option value="">Login to NotebookLM first</option>';
+      const loginText = t('popup_loginRequired', 'Login to NotebookLM first');
+      notebookSelect.innerHTML = `<option value="">${loginText}</option>`;
       addBtn.disabled = true;
       return;
     }
@@ -162,13 +185,15 @@ async function loadNotebooks() {
     notebookSelect.innerHTML = '';
 
     if (notebooks.length === 0) {
-      notebookSelect.innerHTML = '<option value="">No notebooks found</option>';
+      const noNotebooksText = t('popup_noNotebooks', 'No notebooks found');
+      notebookSelect.innerHTML = `<option value="">${noNotebooksText}</option>`;
       addBtn.disabled = true;
     } else {
+      const sourcesText = t('common_sources', 'sources');
       notebooks.forEach(nb => {
         const option = document.createElement('option');
         option.value = nb.id;
-        option.textContent = `${nb.emoji} ${nb.name} (${nb.sources} sources)`;
+        option.textContent = `${nb.emoji} ${nb.name} (${nb.sources} ${sourcesText})`;
         if (nb.id === lastNotebook) {
           option.selected = true;
         }
@@ -178,7 +203,8 @@ async function loadNotebooks() {
     }
   } catch (error) {
     console.error('Error loading notebooks:', error);
-    showStatus('error', 'Failed to load notebooks');
+    const errorText = t('popup_error', 'Failed to load notebooks');
+    showStatus('error', errorText);
     addBtn.disabled = true;
   }
 }
@@ -193,19 +219,22 @@ async function handleAddToNotebook() {
 
     // For YouTube playlists/channels, we need to get video URLs from content script
     if (youtubePageType === 'playlist' || youtubePageType === 'playlist_video' || youtubePageType === 'channel') {
-      const typeLabel = youtubePageType === 'channel' ? 'channel' : 'playlist';
-      showStatus('loading', `Extracting videos from ${typeLabel}...`);
+      const typeLabel = youtubePageType === 'channel' ? t('popup_channel', 'channel') : t('popup_playlist', 'playlist');
+      const extractingText = t('popup_extractingVideos', 'Extracting videos from');
+      showStatus('loading', `${extractingText} ${typeLabel}...`);
 
       // Request video URLs from content script
       const videoUrls = await getYouTubeVideoUrls();
 
       if (!videoUrls || videoUrls.length === 0) {
-        showStatus('error', `No videos found. Try scrolling down to load more videos, then try again.`);
+        const noVideosText = t('popup_noVideosFound', 'No videos found. Try scrolling down to load more videos, then try again.');
+        showStatus('error', noVideosText);
         addBtn.disabled = false;
         return;
       }
 
-      showStatus('loading', `Adding ${videoUrls.length} videos to notebook...`);
+      const addingText = t('popup_addingVideos', 'Adding videos to notebook...');
+      showStatus('loading', `${addingText} (${videoUrls.length})`);
 
       // Add all videos to notebook
       const response = await sendMessage({
@@ -218,7 +247,8 @@ async function handleAddToNotebook() {
         showStatus('error', response.error);
       } else {
         await chrome.storage.sync.set({ lastNotebook: notebookId });
-        showStatus('success', `✓ Added ${videoUrls.length} videos!`);
+        const videosAddedText = t('popup_videosAdded', 'videos added!');
+        showStatus('success', `✓ ${videoUrls.length} ${videosAddedText}`);
 
         setTimeout(() => {
           const notebook = notebooks.find(n => n.id === notebookId);
@@ -227,7 +257,8 @@ async function handleAddToNotebook() {
       }
     } else {
       // Single URL (video or regular page)
-      showStatus('loading', 'Adding to notebook...');
+      const loadingText = t('popup_loading', 'Adding to notebook...');
+      showStatus('loading', loadingText);
 
       const response = await sendMessage({
         cmd: 'add-source',
@@ -239,7 +270,8 @@ async function handleAddToNotebook() {
         showStatus('error', response.error);
       } else {
         await chrome.storage.sync.set({ lastNotebook: notebookId });
-        showStatus('success', '✓ Added successfully!');
+        const successText = t('popup_success', 'Added successfully!');
+        showStatus('success', `✓ ${successText}`);
 
         setTimeout(() => {
           const notebook = notebooks.find(n => n.id === notebookId);
@@ -248,7 +280,8 @@ async function handleAddToNotebook() {
       }
     }
   } catch (error) {
-    showStatus('error', 'Failed to add to notebook');
+    const errorText = t('popup_error', 'Failed to add to notebook');
+    showStatus('error', errorText);
   } finally {
     addBtn.disabled = false;
   }
@@ -349,14 +382,16 @@ function extractYouTubeUrls(pageType) {
 // Show success message with action buttons
 function showSuccessWithActions(notebook, videoCount = null) {
   const notebookUrl = `https://notebooklm.google.com/notebook/${notebook.id}`;
-  const countText = videoCount ? `${videoCount} videos` : 'page';
+  const countText = videoCount ? `${videoCount} ${t('common_videos', 'videos')}` : t('common_item', 'page');
+  const addedToText = t('popup_addedTo', 'Added to');
+  const openNotebookText = t('popup_openNotebook', 'Open Notebook');
 
   statusDiv.className = 'status success';
   statusDiv.innerHTML = `
-    <div>✓ Added ${countText} to "${notebook.emoji} ${notebook.name}"</div>
+    <div>✓ ${addedToText} "${notebook.emoji} ${notebook.name}"</div>
     <div class="success-actions">
       <button class="btn btn-secondary" id="open-notebook-btn">
-        Open Notebook
+        ${openNotebookText}
       </button>
     </div>
   `;
@@ -391,7 +426,8 @@ async function handleCreateNotebook() {
 
   try {
     modalCreate.disabled = true;
-    modalCreate.textContent = 'Creating...';
+    const creatingText = t('popup_loading', 'Creating...');
+    modalCreate.textContent = creatingText;
 
     // Determine emoji based on URL
     const isYouTube = currentTab?.url?.includes('youtube.com');
@@ -424,7 +460,8 @@ async function handleCreateNotebook() {
     await chrome.storage.sync.set({ lastNotebook: notebook.id });
 
     hideNewNotebookModal();
-    showStatus('success', `✓ Created "${emoji} ${name}" and added page!`);
+    const successText = t('popup_success', 'Created and added!');
+    showStatus('success', `✓ ${successText}`);
 
     // Reload notebooks
     await loadNotebooks();
@@ -433,10 +470,12 @@ async function handleCreateNotebook() {
     notebookSelect.value = notebook.id;
 
   } catch (error) {
-    showStatus('error', 'Failed to create notebook');
+    const errorText = t('popup_error', 'Failed to create notebook');
+    showStatus('error', errorText);
   } finally {
     modalCreate.disabled = false;
-    modalCreate.textContent = 'Create & Add';
+    const createAndAddText = t('popup_createAndAdd', 'Create & Add');
+    modalCreate.textContent = createAndAddText;
   }
 }
 

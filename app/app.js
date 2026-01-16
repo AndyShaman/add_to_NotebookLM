@@ -9,7 +9,7 @@ let linksInput, linkCount, importLinksBtn;
 let tabsContainer, tabsCount, importTabsBtn, selectAllTabs;
 let progressContainer, progressFill, progressText;
 let statusDiv;
-let settingsAccountSelect, autoOpenNotebook;
+let settingsAccountSelect, settingsLanguageSelect, autoOpenNotebook;
 
 // State
 let notebooks = [];
@@ -18,6 +18,11 @@ let selectedTabs = new Set();
 let currentTab = 'links';
 
 async function init() {
+  // Initialize localization first
+  if (window.I18n) {
+    await I18n.init();
+  }
+
   // Get DOM elements
   notebookSelect = document.getElementById('notebook-select');
   newNotebookBtn = document.getElementById('new-notebook-btn');
@@ -36,6 +41,7 @@ async function init() {
   progressText = document.getElementById('progress-text');
   statusDiv = document.getElementById('status');
   settingsAccountSelect = document.getElementById('settings-account-select');
+  settingsLanguageSelect = document.getElementById('settings-language-select');
   autoOpenNotebook = document.getElementById('auto-open-notebook');
 
   // Set up event listeners
@@ -53,6 +59,9 @@ async function init() {
   // Settings event listeners
   if (settingsAccountSelect) {
     settingsAccountSelect.addEventListener('change', handleSettingsAccountChange);
+  }
+  if (settingsLanguageSelect) {
+    settingsLanguageSelect.addEventListener('change', handleLanguageChange);
   }
   if (autoOpenNotebook) {
     autoOpenNotebook.addEventListener('change', handleAutoOpenChange);
@@ -115,7 +124,8 @@ async function loadNotebooks() {
     const response = await sendMessage({ cmd: 'list-notebooks' });
 
     if (response.error) {
-      notebookSelect.innerHTML = '<option value="">Login to NotebookLM first</option>';
+      const loginText = I18n ? I18n.get('popup_loginRequired') : 'Login to NotebookLM first';
+      notebookSelect.innerHTML = `<option value="">${loginText}</option>`;
       showStatus('error', response.error);
       return;
     }
@@ -128,11 +138,13 @@ async function loadNotebooks() {
 
     // Populate select
     if (notebooks.length === 0) {
-      notebookSelect.innerHTML = '<option value="">No notebooks found</option>';
+      const noNotebooksText = I18n ? I18n.get('popup_noNotebooks') : 'No notebooks found';
+      notebookSelect.innerHTML = `<option value="">${noNotebooksText}</option>`;
     } else {
+      const sourcesText = I18n ? I18n.get('common_sources') : 'sources';
       notebookSelect.innerHTML = notebooks.map(nb => `
         <option value="${nb.id}" ${nb.id === lastNotebook ? 'selected' : ''}>
-          ${nb.emoji} ${nb.name} (${nb.sources} sources)
+          ${nb.emoji} ${nb.name} (${nb.sources} ${sourcesText})
         </option>
       `).join('');
     }
@@ -140,7 +152,8 @@ async function loadNotebooks() {
     updateImportButtons();
 
   } catch (error) {
-    showStatus('error', 'Failed to load notebooks');
+    const errorText = I18n ? I18n.get('popup_error') : 'Failed to load notebooks';
+    showStatus('error', errorText);
   }
 }
 
@@ -153,14 +166,16 @@ async function loadTabs() {
     renderTabs();
 
   } catch (error) {
-    tabsContainer.innerHTML = '<div style="padding: 24px; text-align: center; color: #5f6368;">Failed to load tabs</div>';
+    const failedText = I18n ? I18n.get('bulk_failedToLoad') : 'Failed to load tabs';
+    tabsContainer.innerHTML = `<div style="padding: 24px; text-align: center; color: #5f6368;">${failedText}</div>`;
   }
 }
 
 // Render tabs list
 function renderTabs() {
   if (allTabs.length === 0) {
-    tabsContainer.innerHTML = '<div style="padding: 24px; text-align: center; color: #5f6368;">No tabs found</div>';
+    const noTabsText = I18n ? I18n.get('bulk_noTabs') : 'No tabs found';
+    tabsContainer.innerHTML = `<div style="padding: 24px; text-align: center; color: #5f6368;">${noTabsText}</div>`;
     return;
   }
 
@@ -224,14 +239,16 @@ function updateSelectAllState() {
 
 // Update tabs count
 function updateTabsCount() {
-  tabsCount.textContent = `${selectedTabs.size} tab${selectedTabs.size !== 1 ? 's' : ''} selected`;
+  const tabsText = I18n ? I18n.get('common_tabs') : 'tabs';
+  tabsCount.textContent = `${selectedTabs.size} ${tabsText}`;
   updateImportButtons();
 }
 
 // Update link count
 function updateLinkCount() {
   const links = parseLinks(linksInput.value);
-  linkCount.textContent = `${links.length} link${links.length !== 1 ? 's' : ''} detected`;
+  const linksText = I18n ? I18n.get('common_links') : 'links';
+  linkCount.textContent = `${links.length} ${linksText}`;
   updateImportButtons();
 }
 
@@ -260,21 +277,26 @@ function updateImportButtons() {
   const hasNotebook = notebookSelect.value !== '';
   const links = parseLinks(linksInput.value);
 
+  const importLinksText = I18n ? I18n.get('bulk_importLinks') : 'Import Links';
+  const importTabsText = I18n ? I18n.get('bulk_importTabs') : 'Import Selected Tabs';
+
   importLinksBtn.disabled = !hasNotebook || links.length === 0;
-  importLinksBtn.textContent = `📦 Import ${links.length} Link${links.length !== 1 ? 's' : ''}`;
+  importLinksBtn.innerHTML = `📦 ${importLinksText} (${links.length})`;
 
   importTabsBtn.disabled = !hasNotebook || selectedTabs.size === 0;
-  importTabsBtn.textContent = `📦 Import ${selectedTabs.size} Tab${selectedTabs.size !== 1 ? 's' : ''}`;
+  importTabsBtn.innerHTML = `📦 ${importTabsText} (${selectedTabs.size})`;
 }
 
 // Handle new notebook creation
 async function handleNewNotebook() {
-  const name = prompt('Enter notebook name:');
+  const promptText = I18n ? I18n.get('popup_notebookName') : 'Notebook name';
+  const name = prompt(promptText + ':');
   if (!name) return;
 
   try {
     newNotebookBtn.disabled = true;
-    newNotebookBtn.textContent = 'Creating...';
+    const creatingText = I18n ? I18n.get('popup_loading') : 'Creating...';
+    newNotebookBtn.innerHTML = `⏳ ${creatingText}`;
 
     const response = await sendMessage({
       cmd: 'create-notebook',
@@ -285,17 +307,19 @@ async function handleNewNotebook() {
     if (response.error) {
       showStatus('error', response.error);
     } else {
-      showStatus('success', `Created notebook "${name}"`);
+      showStatus('success', `✓ ${name}`);
       await loadNotebooks();
       notebookSelect.value = response.notebook.id;
       updateImportButtons();
     }
 
   } catch (error) {
-    showStatus('error', 'Failed to create notebook');
+    const errorText = I18n ? I18n.get('popup_error') : 'Failed to create notebook';
+    showStatus('error', errorText);
   } finally {
     newNotebookBtn.disabled = false;
-    newNotebookBtn.textContent = '➕ Create New Notebook';
+    const createText = I18n ? I18n.get('bulk_createNewNotebook') : 'Create New Notebook';
+    newNotebookBtn.innerHTML = `➕ ${createText}`;
   }
 }
 
@@ -367,11 +391,13 @@ async function importUrls(notebookId, urls) {
 
     const notebook = notebooks.find(n => n.id === notebookId);
     const notebookUrl = `https://notebooklm.google.com/notebook/${notebookId}`;
+    const openText = I18n ? I18n.get('bulk_openNotebook') : 'Open notebook';
 
     if (failed === 0) {
+      const successText = I18n ? I18n.get('popup_success') : 'Successfully imported!';
       showStatus('success', `
-        ✓ Successfully imported ${imported} item${imported !== 1 ? 's' : ''} to "${notebook?.name || 'notebook'}"!
-        <br><a href="${notebookUrl}" target="_blank">Open notebook →</a>
+        ✓ ${successText} (${imported})
+        <br><a href="${notebookUrl}" target="_blank">${openText} →</a>
       `);
 
       // Clear inputs
@@ -384,11 +410,12 @@ async function importUrls(notebookId, urls) {
       }
     } else if (imported > 0) {
       showStatus('info', `
-        Imported ${imported} item${imported !== 1 ? 's' : ''}, ${failed} failed.
-        <br><a href="${notebookUrl}" target="_blank">Open notebook →</a>
+        ${imported} OK, ${failed} failed.
+        <br><a href="${notebookUrl}" target="_blank">${openText} →</a>
       `);
     } else {
-      showStatus('error', 'Failed to import items. Please try again.');
+      const errorText = I18n ? I18n.get('popup_error') : 'Failed to import items. Please try again.';
+      showStatus('error', errorText);
     }
 
     // Reload notebooks to update source counts
@@ -396,7 +423,8 @@ async function importUrls(notebookId, urls) {
 
   } catch (error) {
     hideProgress();
-    showStatus('error', 'Import failed: ' + error.message);
+    const errorText = I18n ? I18n.get('popup_error') : 'Import failed';
+    showStatus('error', errorText + ': ' + error.message);
   } finally {
     updateImportButtons();
   }
@@ -407,7 +435,7 @@ function showProgress(current, total) {
   progressContainer.classList.add('visible');
   const percent = Math.round((current / total) * 100);
   progressFill.style.width = `${percent}%`;
-  progressText.textContent = `Importing ${current} of ${total}...`;
+  progressText.textContent = `${current} / ${total}...`;
 }
 
 // Hide progress bar
@@ -459,7 +487,12 @@ async function loadSettings() {
     }
 
     // Load saved settings
-    const storage = await chrome.storage.sync.get(['selectedAccount', 'autoOpenNotebook']);
+    const storage = await chrome.storage.sync.get(['selectedAccount', 'autoOpenNotebook', 'language']);
+
+    // Set current language in selector
+    if (settingsLanguageSelect && I18n) {
+      settingsLanguageSelect.value = I18n.getLanguage();
+    }
 
     // Load accounts
     const response = await sendMessage({ cmd: 'list-accounts' });
@@ -503,6 +536,22 @@ async function loadSettings() {
   }
 }
 
+// Handle language change
+async function handleLanguageChange() {
+  const lang = settingsLanguageSelect.value;
+  if (I18n) {
+    await I18n.setLanguage(lang);
+    // Update dynamic content that wasn't set via data-i18n
+    updateLinkCount();
+    updateTabsCount();
+    updateImportButtons();
+    await loadNotebooks();
+
+    const successText = I18n.get('settings_accountChanged').replace('Account changed', 'Language changed');
+    showStatus('success', '✓ ' + (lang === 'ru' ? 'Язык изменён' : 'Language changed'));
+  }
+}
+
 // Handle settings account change
 async function handleSettingsAccountChange() {
   const account = parseInt(settingsAccountSelect.value);
@@ -511,7 +560,8 @@ async function handleSettingsAccountChange() {
   // Reload notebooks with new account
   await loadNotebooks();
 
-  showStatus('success', 'Account changed. Notebooks reloaded.');
+  const successText = I18n ? I18n.get('settings_accountChanged') : 'Account changed. Notebooks reloaded.';
+  showStatus('success', successText);
 }
 
 // Handle auto-open checkbox change

@@ -352,36 +352,36 @@
     <div class="header">
       <img src="../icons/icon48.png" alt="NotebookLM">
       <div>
-        <h1>📦 Bulk Import</h1>
-        <p>Import multiple links to NotebookLM at once</p>
+        <h1>📦 <span data-i18n="bulk_title">Bulk Import</span></h1>
+        <p data-i18n="bulk_description">Import multiple links to NotebookLM at once</p>
       </div>
     </div>
 
     <!-- Tabs -->
     <div class="tabs">
-      <button class="tab active" data-tab="links">📝 Links</button>
-      <button class="tab" data-tab="tabs">🗂️ Browser Tabs</button>
-      <button class="tab" data-tab="settings">⚙️ Settings</button>
+      <button class="tab active" data-tab="links">📝 <span data-i18n="bulk_linksTab">Links</span></button>
+      <button class="tab" data-tab="tabs">🗂️ <span data-i18n="bulk_tabsTab">Browser Tabs</span></button>
+      <button class="tab" data-tab="settings">⚙️ <span data-i18n="bulk_settingsTab">Settings</span></button>
     </div>
 
     <!-- Notebook Selection -->
     <div class="card">
-      <div class="card-title">📔 Select Notebook</div>
+      <div class="card-title">📔 <span data-i18n="bulk_selectNotebook">Select Notebook</span></div>
       <div class="form-group">
         <select id="notebook-select" class="form-select">
-          <option value="">Loading notebooks...</option>
+          <option value="" data-i18n="popup_loadingNotebooks">Loading notebooks...</option>
         </select>
       </div>
       <button id="new-notebook-btn" class="btn btn-secondary">
-        ➕ Create New Notebook
+        ➕ <span data-i18n="bulk_createNewNotebook">Create New Notebook</span>
       </button>
     </div>
 
     <!-- Links Tab Content -->
     <div id="links-panel" class="card">
-      <div class="card-title">📝 Paste Links</div>
+      <div class="card-title">📝 <span data-i18n="bulk_pasteLinks">Paste Links</span></div>
       <div class="form-group">
-        <label class="form-label">Enter URLs (one per line):</label>
+        <label class="form-label" data-i18n="bulk_enterUrls">Enter URLs (one per line):</label>
         <textarea
           id="links-input"
           class="form-textarea"
@@ -390,71 +390,81 @@ https://example.com/article
 https://notion.so/page
 ..."
         ></textarea>
-        <div id="link-count" class="link-count">0 links detected</div>
+        <div id="link-count" class="link-count">0 <span data-i18n="common_links">links</span></div>
       </div>
       <button id="import-links-btn" class="btn btn-primary btn-block" disabled>
-        📦 Import Links
+        📦 <span data-i18n="bulk_importLinks">Import Links</span>
       </button>
     </div>
 
     <!-- Tabs Tab Content -->
     <div id="tabs-panel" class="card hidden">
-      <div class="card-title">🗂️ Select Browser Tabs</div>
+      <div class="card-title">🗂️ <span data-i18n="bulk_selectTabs">Select Browser Tabs</span></div>
       <div class="form-group">
         <div class="tabs-list">
           <div class="select-all-row">
             <input type="checkbox" id="select-all-tabs">
-            <label for="select-all-tabs">Select All</label>
+            <label for="select-all-tabs" data-i18n="bulk_selectAll">Select All</label>
           </div>
           <div id="tabs-container">
-            <div style="padding: 24px; text-align: center; color: #5f6368;">
+            <div style="padding: 24px; text-align: center; color: #5f6368;" data-i18n="bulk_loadingTabs">
               Loading tabs...
             </div>
           </div>
         </div>
-        <div id="tabs-count" class="link-count">0 tabs selected</div>
+        <div id="tabs-count" class="link-count">0 <span data-i18n="common_tabs">tabs</span></div>
       </div>
       <button id="import-tabs-btn" class="btn btn-primary btn-block" disabled>
-        📦 Import Selected Tabs
+        📦 <span data-i18n="bulk_importTabs">Import Selected Tabs</span>
       </button>
     </div>
 
     <!-- Settings Tab Content -->
     <div id="settings-panel" class="card hidden">
-      <div class="card-title">⚙️ Settings</div>
+      <div class="card-title">⚙️ <span data-i18n="settings_title">Settings</span></div>
+
+      <!-- Language Setting -->
+      <div class="form-group">
+        <label class="form-label" data-i18n="settings_language">Language:</label>
+        <select id="settings-language-select" class="form-select">
+          <option value="en">English</option>
+          <option value="ru">Русский</option>
+        </select>
+        <div class="link-count" data-i18n="settings_languageHint">Select interface language</div>
+      </div>
 
       <div class="form-group">
-        <label class="form-label">Google Account:</label>
+        <label class="form-label" data-i18n="settings_account">Google Account:</label>
         <select id="settings-account-select" class="form-select">
           <option value="0">Loading accounts...</option>
         </select>
-        <div class="link-count">Select which Google account to use for NotebookLM</div>
+        <div class="link-count" data-i18n="settings_accountHint">Select which Google account to use for NotebookLM</div>
       </div>
 
       <div class="form-group">
         <label class="form-label">
           <input type="checkbox" id="auto-open-notebook" style="width: 18px; height: 18px; margin-right: 8px;">
-          Auto-open notebook after adding sources
+          <span data-i18n="settings_autoOpen">Auto-open notebook after adding sources</span>
         </label>
       </div>
 
       <div class="form-group" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e0e0e0;">
-        <div class="card-title">📺 YouTube Settings</div>
-        <div class="link-count" style="margin-top: 8px;">
+        <div class="card-title">📺 <span data-i18n="settings_youtube">YouTube Settings</span></div>
+        <div class="link-count" style="margin-top: 8px;" data-i18n="settings_youtubeHint">
           For YouTube playlists and channels, use the buttons that appear directly on YouTube pages.
           The extension will automatically extract video URLs using YouTube's InnerTube API.
         </div>
       </div>
 
       <div class="form-group" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e0e0e0;">
-        <div class="card-title">ℹ️ About</div>
+        <div class="card-title">ℹ️ <span data-i18n="settings_about">About</span></div>
         <div class="link-count" style="margin-top: 8px;">
           <strong>Add to NotebookLM</strong> v1.0.0<br><br>
-          Import YouTube videos, web pages, and other content directly into Google NotebookLM.
+          <span data-i18n="settings_aboutText">Import YouTube videos, web pages, and other content directly into Google NotebookLM.</span>
         </div>
         <div style="margin-top: 12px;">
           <button class="btn btn-secondary" id="open-notebooklm-btn">
-            📔 Open NotebookLM
+            📔 <span data-i18n="settings_openNotebookLM">Open NotebookLM</span>
           </button>
         </div>
       </div>
@@ -472,6 +482,7 @@ https://notion.so/page
     <div id="status" class="status"></div>
   </div>
 
+  <script src="../lib/i18n.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
