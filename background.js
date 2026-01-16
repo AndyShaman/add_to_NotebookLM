@@ -186,7 +186,7 @@ const NotebookLMAPI = {
     return await response.text();
   },
 
-  // Get list of Google accounts
+  // Get list of Google accounts (filter out YouTube channels/profiles)
   async listAccounts() {
     try {
       const response = await fetch(
@@ -209,14 +209,18 @@ const NotebookLMAPI = {
       const parsed = JSON.parse(decoded);
       const accounts = parsed[1] || [];
 
-      return accounts.map(acc => ({
-        name: acc[2] || null,
-        email: acc[3] || null,
-        avatar: acc[4] || null,
-        isActive: acc[5] || false,
-        isDefault: acc[6] || false,
-        index: acc[7] || 0
-      }));
+      // Filter: only keep entries with valid email addresses (real Google accounts)
+      // YouTube channels/profiles don't have email in acc[3]
+      return accounts
+        .filter(acc => acc[3] && acc[3].includes('@'))
+        .map((acc, idx) => ({
+          name: acc[2] || null,
+          email: acc[3] || null,
+          avatar: acc[4] || null,
+          isActive: acc[5] || false,
+          isDefault: acc[6] || false,
+          index: idx  // Use filtered index for authuser param
+        }));
     } catch (error) {
       console.error('listAccounts error:', error);
       return [];
