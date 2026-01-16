@@ -9,7 +9,7 @@ let linksInput, linkCount, importLinksBtn;
 let tabsContainer, tabsCount, importTabsBtn, selectAllTabs;
 let progressContainer, progressFill, progressText;
 let statusDiv;
-let settingsAccountSelect, settingsLanguageSelect, autoOpenNotebook;
+let settingsAccountSelect, settingsLanguageSelect, autoOpenNotebook, enableBulkDelete;
 
 // State
 let notebooks = [];
@@ -43,6 +43,7 @@ async function init() {
   settingsAccountSelect = document.getElementById('settings-account-select');
   settingsLanguageSelect = document.getElementById('settings-language-select');
   autoOpenNotebook = document.getElementById('auto-open-notebook');
+  enableBulkDelete = document.getElementById('enable-bulk-delete');
 
   // Set up event listeners
   document.querySelectorAll('.tab').forEach(tab => {
@@ -65,6 +66,9 @@ async function init() {
   }
   if (autoOpenNotebook) {
     autoOpenNotebook.addEventListener('change', handleAutoOpenChange);
+  }
+  if (enableBulkDelete) {
+    enableBulkDelete.addEventListener('change', handleBulkDeleteChange);
   }
 
   // Check URL hash for initial tab
@@ -487,7 +491,7 @@ async function loadSettings() {
     }
 
     // Load saved settings
-    const storage = await chrome.storage.sync.get(['selectedAccount', 'autoOpenNotebook', 'language']);
+    const storage = await chrome.storage.sync.get(['selectedAccount', 'autoOpenNotebook', 'enableBulkDelete', 'language']);
 
     // Set current language in selector
     if (settingsLanguageSelect && I18n) {
@@ -526,6 +530,11 @@ async function loadSettings() {
       autoOpenNotebook.checked = storage.autoOpenNotebook || false;
     }
 
+    // Set bulk delete checkbox (default to true)
+    if (enableBulkDelete) {
+      enableBulkDelete.checked = storage.enableBulkDelete !== false;
+    }
+
   } catch (error) {
     console.error('Error loading settings:', error);
   }
@@ -562,4 +571,9 @@ async function handleSettingsAccountChange() {
 // Handle auto-open checkbox change
 async function handleAutoOpenChange() {
   await chrome.storage.sync.set({ autoOpenNotebook: autoOpenNotebook.checked });
+}
+
+// Handle bulk delete checkbox change
+async function handleBulkDeleteChange() {
+  await chrome.storage.sync.set({ enableBulkDelete: enableBulkDelete.checked });
 }

@@ -56,6 +56,12 @@
       "css": ["content/youtube.css"],
       "run_at": "document_start",
       "all_frames": true
+    },
+    {
+      "matches": ["https://notebooklm.google.com/*"],
+      "js": ["content/notebooklm.js"],
+      "run_at": "document_idle",
+      "all_frames": false
     }
   ],
 

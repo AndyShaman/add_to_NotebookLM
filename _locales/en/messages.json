@@ -342,5 +342,57 @@
   "common_items": {
     "message": "items",
     "description": "Items plural"
+  },
+  "bulk_sourcesTab": {
+    "message": "Manage Sources",
+    "description": "Sources management tab"
+  },
+  "sources_title": {
+    "message": "Manage Sources",
+    "description": "Sources management title"
+  },
+  "sources_selectNotebook": {
+    "message": "Select notebook to manage:",
+    "description": "Sources notebook selection label"
+  },
+  "sources_loadSources": {
+    "message": "Load Sources",
+    "description": "Load sources button"
+  },
+  "sources_selectNotebookFirst": {
+    "message": "Select a notebook and click \"Load Sources\"",
+    "description": "Sources placeholder text"
+  },
+  "sources_noSources": {
+    "message": "No sources in this notebook",
+    "description": "No sources message"
+  },
+  "sources_deleteSelected": {
+    "message": "Delete Selected Sources",
+    "description": "Delete sources button"
+  },
+  "sources_confirmDelete": {
+    "message": "Are you sure you want to delete ${count} source(s)? This cannot be undone.",
+    "description": "Delete confirmation message"
+  },
+  "sources_deleting": {
+    "message": "Deleting...",
+    "description": "Deleting progress message"
+  },
+  "sources_deletedSuccess": {
+    "message": "Successfully deleted ${count} source(s)!",
+    "description": "Delete success message"
+  },
+  "sources_deleteFailed": {
+    "message": "Failed to delete sources",
+    "description": "Delete failed message"
+  },
+  "settings_enableBulkDelete": {
+    "message": "Enable bulk delete button in NotebookLM",
+    "description": "Bulk delete setting label"
+  },
+  "settings_bulkDeleteHint": {
+    "message": "Shows a delete button when you select multiple sources in NotebookLM",
+    "description": "Bulk delete setting hint"
   }
 }

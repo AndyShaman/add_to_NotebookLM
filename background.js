@@ -231,6 +231,82 @@ const NotebookLMAPI = {
   getNotebookUrl(notebookId, authuser = 0) {
     const base = `${this.BASE_URL}/notebook/${notebookId}`;
     return authuser > 0 ? `${base}?authuser=${authuser}` : base;
+  },
+
+  // Get notebook details with sources list
+  async getNotebook(notebookId) {
+    const response = await this.rpc('rLM1Ne', [notebookId, null, [2], null, 0], `/notebook/${notebookId}`);
+    return this.parseNotebookDetails(response);
+  },
+
+  // Parse notebook details from RPC response
+  parseNotebookDetails(responseText) {
+    try {
+      const lines = responseText.split('\n');
+      const dataLine = lines.find(line => line.includes('wrb.fr'));
+      if (!dataLine) return { sources: [] };
+
+      const parsed = JSON.parse(dataLine);
+      const innerData = JSON.parse(parsed[0][2]);
+
+      if (!innerData || !innerData[0]) return { sources: [] };
+
+      const notebookData = innerData[0];
+      const sourcesArray = notebookData[3] || [];
+
+      const sources = sourcesArray
+        .filter(source => source && source[0])
+        .map(source => {
+          const sourceType = source[3]?.[0] || 0;
+          const typeNames = {
+            1: 'url',
+            3: 'text',
+            4: 'youtube',
+            7: 'pdf',
+            8: 'audio'
+          };
+
+          return {
+            id: source[0],
+            title: source[2] || 'Untitled',
+            type: typeNames[sourceType] || 'unknown',
+            typeCode: sourceType,
+            url: source[3]?.[1] || null,
+            status: source[4] || 0
+          };
+        });
+
+      return {
+        id: notebookData[0],
+        title: notebookData[1],
+        sources
+      };
+    } catch (error) {
+      console.error('parseNotebookDetails error:', error);
+      return { sources: [] };
+    }
+  },
+
+  // Delete a single source from notebook
+  async deleteSource(notebookId, sourceId) {
+    // Note: notebook_id is passed via source_path, NOT in params!
+    // Payload structure: [[[source_id]]] (triple-nested)
+    const response = await this.rpc('tGMBJ', [[[sourceId]]], `/notebook/${notebookId}`);
+    return response;
+  },
+
+  // Delete multiple sources from notebook
+  async deleteSources(notebookId, sourceIds) {
+    const results = [];
+    for (const sourceId of sourceIds) {
+      try {
+        await this.deleteSource(notebookId, sourceId);
+        results.push({ sourceId, success: true });
+      } catch (error) {
+        results.push({ sourceId, success: false, error: error.message });
+      }
+    }
+    return results;
   }
 };
 
@@ -334,6 +410,18 @@ async function handleMessage(request, sender) {
     case 'save-to-notebooklm':
       return await saveToNotebookLMOriginal(params.title, params.urls, params.currentURL, params.notebookID);
 
+    case 'get-notebook':
+      return await getNotebook(params.notebookId);
+
+    case 'get-sources':
+      return await getSources(params.notebookId);
+
+    case 'delete-source':
+      return await deleteSource(params.notebookId, params.sourceId);
+
+    case 'delete-sources':
+      return await deleteSources(params.notebookId, params.sourceIds);
+
     default:
       console.log('Unknown command:', cmd);
       return { error: `Unknown command: ${cmd}` };
@@ -413,6 +501,53 @@ async function addTextSource(notebookId, text, title) {
   try {
     await NotebookLMAPI.addTextSource(notebookId, text, title);
     return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// Get notebook details with sources
+async function getNotebook(notebookId) {
+  try {
+    const notebook = await NotebookLMAPI.getNotebook(notebookId);
+    return { notebook };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// Get sources list for a notebook
+async function getSources(notebookId) {
+  try {
+    const notebook = await NotebookLMAPI.getNotebook(notebookId);
+    return { sources: notebook.sources || [] };
+  } catch (error) {
+    return { error: error.message, sources: [] };
+  }
+}
+
+// Delete single source
+async function deleteSource(notebookId, sourceId) {
+  try {
+    await NotebookLMAPI.deleteSource(notebookId, sourceId);
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// Delete multiple sources
+async function deleteSources(notebookId, sourceIds) {
+  try {
+    const results = await NotebookLMAPI.deleteSources(notebookId, sourceIds);
+    const successCount = results.filter(r => r.success).length;
+    const failCount = results.filter(r => !r.success).length;
+    return {
+      success: failCount === 0,
+      results,
+      successCount,
+      failCount
+    };
   } catch (error) {
     return { error: error.message };
   }

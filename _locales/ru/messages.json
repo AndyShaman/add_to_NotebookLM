@@ -342,5 +342,57 @@
   "common_items": {
     "message": "элементов",
     "description": "Элементы множественное число"
+  },
+  "bulk_sourcesTab": {
+    "message": "Управление источниками",
+    "description": "Вкладка управления источниками"
+  },
+  "sources_title": {
+    "message": "Управление источниками",
+    "description": "Заголовок управления источниками"
+  },
+  "sources_selectNotebook": {
+    "message": "Выберите ноутбук для управления:",
+    "description": "Метка выбора ноутбука"
+  },
+  "sources_loadSources": {
+    "message": "Загрузить источники",
+    "description": "Кнопка загрузки источников"
+  },
+  "sources_selectNotebookFirst": {
+    "message": "Выберите ноутбук и нажмите \"Загрузить источники\"",
+    "description": "Текст-подсказка"
+  },
+  "sources_noSources": {
+    "message": "В этом ноутбуке нет источников",
+    "description": "Сообщение об отсутствии источников"
+  },
+  "sources_deleteSelected": {
+    "message": "Удалить выбранные источники",
+    "description": "Кнопка удаления"
+  },
+  "sources_confirmDelete": {
+    "message": "Вы уверены, что хотите удалить ${count} источник(ов)? Это действие нельзя отменить.",
+    "description": "Подтверждение удаления"
+  },
+  "sources_deleting": {
+    "message": "Удаление...",
+    "description": "Сообщение о процессе удаления"
+  },
+  "sources_deletedSuccess": {
+    "message": "Успешно удалено источников: ${count}!",
+    "description": "Сообщение об успешном удалении"
+  },
+  "sources_deleteFailed": {
+    "message": "Не удалось удалить источники",
+    "description": "Сообщение об ошибке удаления"
+  },
+  "settings_enableBulkDelete": {
+    "message": "Включить кнопку массового удаления в NotebookLM",
+    "description": "Настройка массового удаления"
+  },
+  "settings_bulkDeleteHint": {
+    "message": "Показывает кнопку удаления при выборе нескольких источников в NotebookLM",
+    "description": "Подсказка настройки массового удаления"
   }
 }

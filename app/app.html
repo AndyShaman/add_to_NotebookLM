@@ -251,6 +251,69 @@
       text-overflow: ellipsis;
     }
 
+    .source-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-bottom: 1px solid #f1f3f4;
+      cursor: pointer;
+    }
+
+    .source-item:last-child {
+      border-bottom: none;
+    }
+
+    .source-item:hover {
+      background: #f8f9fa;
+    }
+
+    .source-item.selected {
+      background: #fce8e6;
+    }
+
+    .source-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .source-type-icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+    }
+
+    .source-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .source-title {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .source-meta {
+      font-size: 12px;
+      color: #5f6368;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .btn-danger {
+      background: #d93025;
+      color: white;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: #b3261e;
+    }
+
     .select-all-row {
       display: flex;
       align-items: center;
@@ -446,6 +509,14 @@ https://notion.so/page
           <input type="checkbox" id="auto-open-notebook" style="width: 18px; height: 18px; margin-right: 8px;">
           <span data-i18n="settings_autoOpen">Auto-open notebook after adding sources</span>
         </label>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <input type="checkbox" id="enable-bulk-delete" style="width: 18px; height: 18px; margin-right: 8px;" checked>
+          <span data-i18n="settings_enableBulkDelete">Enable bulk delete button in NotebookLM</span>
+        </label>
+        <div class="link-count" data-i18n="settings_bulkDeleteHint">Shows a delete button when you select multiple sources in NotebookLM</div>
       </div>
 
       <div class="form-group" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e0e0e0;">
