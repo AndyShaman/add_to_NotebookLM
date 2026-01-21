@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 // DOM elements
 let notebookSelect, addBtn, newNotebookBtn, bulkBtn, tabsBtn;
-let accountSelect, statusDiv, currentUrlDiv, settingsBtn;
+let accountSelect, statusDiv, currentUrlDiv, settingsBtn, openNotebookBtn;
 let newNotebookModal, newNotebookInput, modalCancel, modalCreate;
 
 // Current state
@@ -33,6 +33,7 @@ async function init() {
   modalCancel = document.getElementById('modal-cancel');
   modalCreate = document.getElementById('modal-create');
   settingsBtn = document.getElementById('settings-btn');
+  openNotebookBtn = document.getElementById('open-notebook-btn');
 
   // Set up event listeners
   addBtn.addEventListener('click', handleAddToNotebook);
@@ -44,6 +45,7 @@ async function init() {
   modalCancel.addEventListener('click', hideNewNotebookModal);
   modalCreate.addEventListener('click', handleCreateNotebook);
   settingsBtn.addEventListener('click', openSettings);
+  openNotebookBtn.addEventListener('click', handleOpenNotebook);
 
   // Load initial data
   await loadCurrentTab();
@@ -491,6 +493,15 @@ async function handleNotebookChange() {
     addBtn.disabled = false;
   } else {
     addBtn.disabled = true;
+  }
+}
+
+// Open selected notebook in new tab
+function handleOpenNotebook() {
+  const notebookId = notebookSelect.value;
+  if (notebookId) {
+    const notebookUrl = `https://notebooklm.google.com/notebook/${notebookId}`;
+    chrome.tabs.create({ url: notebookUrl });
   }
 }
 

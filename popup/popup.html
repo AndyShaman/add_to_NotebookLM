@@ -80,6 +80,44 @@
       margin-bottom: 12px;
     }
 
+    .notebook-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .notebook-row .notebook-select {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .open-notebook-btn {
+      padding: 12px;
+      background: #fff;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .open-notebook-btn:hover:not(:disabled) {
+      background: #f8f9fa;
+    }
+
+    .open-notebook-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .open-notebook-btn svg {
+      width: 18px;
+      height: 18px;
+      color: #1a73e8;
+    }
+
     .notebook-select:focus {
       outline: none;
       border-color: #1a73e8;
@@ -308,9 +346,14 @@
 
   <!-- Notebook selector -->
   <div class="section-label" data-i18n="popup_selectNotebook">Add to notebook:</div>
-  <select id="notebook-select" class="notebook-select">
-    <option value="" data-i18n="popup_loadingNotebooks">Loading notebooks...</option>
-  </select>
+  <div class="notebook-row">
+    <select id="notebook-select" class="notebook-select">
+      <option value="" data-i18n="popup_loadingNotebooks">Loading notebooks...</option>
+    </select>
+    <button id="open-notebook-btn" class="open-notebook-btn" title="Open notebook">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+    </button>
+  </div>
 
   <!-- Action buttons -->
   <button id="add-btn" class="btn btn-primary" disabled>

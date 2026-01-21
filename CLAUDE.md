@@ -33,6 +33,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `CCqFvf` - Create notebook
 - `izAoDd` - Add sources to notebook
 - `rLM1Ne` - Check notebook status
+- `tGMBJ` - Delete source from notebook
+
+### Available Message Commands
+
+Commands sent via `chrome.runtime.sendMessage({ cmd: '...', ...params })`:
+
+| Command | Parameters | Description |
+|---------|------------|-------------|
+| `list-accounts` | - | Get logged-in Google accounts |
+| `list-notebooks` | - | Get user's notebooks |
+| `create-notebook` | `title`, `emoji` | Create new notebook |
+| `add-source` | `notebookId`, `url` | Add single URL |
+| `add-sources` | `notebookId`, `urls[]` | Add multiple URLs |
+| `add-text-source` | `notebookId`, `text`, `title` | Add text content |
+| `get-notebook` | `notebookId` | Get notebook with sources |
+| `delete-source` | `notebookId`, `sourceId` | Delete a source |
+| `delete-sources` | `notebookId`, `sourceIds[]` | Delete multiple sources |
+| `get-current-tab` | - | Get active tab info |
+| `get-all-tabs` | - | Get all open tabs |
 
 ## Development
 
@@ -60,6 +79,16 @@ Test these workflows after changes:
 1. Add key to both `_locales/en/messages.json` and `_locales/ru/messages.json`
 2. Use in HTML: `<span data-i18n="your_key"></span>`
 3. Use in JS: `I18n.get('your_key')` or `t('your_key', 'fallback')`
+
+### YouTube Page Type Detection
+
+The popup detects YouTube page types and adjusts button behavior:
+- `video` - Single video at `/watch` without playlist param
+- `playlist` - Dedicated playlist page at `/playlist`
+- `playlist_video` - Video playing from a playlist (has `list` URL param)
+- `channel` - Channel pages (`/@username`, `/channel/`, `/c/`)
+
+Video extraction uses `chrome.scripting.executeScript()` to inject `extractYouTubeUrls()` into the page DOM.
 
 ## Known Limitations
 

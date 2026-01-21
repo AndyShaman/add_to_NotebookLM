@@ -46,18 +46,6 @@
 
   "content_scripts": [
     {
-      "matches": ["*://*/*"],
-      "js": ["content/youtube.js"],
-      "run_at": "document_start",
-      "all_frames": true
-    },
-    {
-      "matches": ["https://*.youtube.com/*"],
-      "css": ["content/youtube.css"],
-      "run_at": "document_start",
-      "all_frames": true
-    },
-    {
       "matches": ["https://notebooklm.google.com/*"],
       "js": ["content/notebooklm.js"],
       "run_at": "document_idle",
