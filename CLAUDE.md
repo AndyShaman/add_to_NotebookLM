@@ -18,6 +18,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **content/youtube.js** - Minified content script injected on YouTube pages. Provides buttons to add videos/playlists/channels directly from YouTube.
 
+- **content/notebooklm.js** - Content script injected on NotebookLM pages. Adds bulk delete button when sources are selected. Uses batch API (max 20 sources per request) for fast deletion.
+
 - **lib/i18n.js** - Localization system using Chrome's `_locales/` messages format. Supports `data-i18n`, `data-i18n-placeholder`, and `data-i18n-title` attributes.
 
 ### Message Flow

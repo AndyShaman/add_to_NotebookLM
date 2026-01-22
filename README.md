@@ -8,6 +8,7 @@
 - Импорт YouTube плейлистов и видео с каналов
 - Массовый импорт ссылок
 - Импорт открытых вкладок браузера
+- **Массовое удаление источников** из ноутбука
 - Поддержка нескольких Google аккаунтов
 - Русский и английский интерфейс
 
@@ -47,6 +48,7 @@ Chrome extension for importing YouTube videos and web pages into Google Notebook
 - Import YouTube playlists and channel videos
 - Bulk import links
 - Import open browser tabs
+- **Bulk delete sources** from notebooks
 - Multiple Google account support
 - English and Russian interface
 
