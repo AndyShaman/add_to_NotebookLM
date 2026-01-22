@@ -280,7 +280,9 @@
 
   // Watch for DOM changes (source selection changes)
   function startObserver() {
-    if (observer) return;
+    if (observer) {
+      observer.disconnect();
+    }
 
     observer = new MutationObserver((mutations) => {
       // Debounce updates
@@ -301,31 +303,79 @@
     observer.observe(sourcePanel, config);
   }
 
-  // Initialize
-  async function init() {
-    // Only run on notebook pages
-    if (!window.location.pathname.includes('/notebook/')) {
+  // Setup function - can be called multiple times for SPA navigation
+  let currentNotebookId = null;
+
+  function setup() {
+    const notebookId = getNotebookId();
+
+    // Skip if not on a notebook page
+    if (!notebookId) {
+      if (deleteButton) {
+        deleteButton.style.display = 'none';
+      }
       return;
     }
 
+    // Skip if already set up for this notebook
+    if (notebookId === currentNotebookId && deleteButton) {
+      return;
+    }
+
+    currentNotebookId = notebookId;
+
+    // Remove old button if exists
+    if (deleteButton) {
+      deleteButton.remove();
+      deleteButton = null;
+    }
+
+    createDeleteButton();
+    startObserver();
+    setTimeout(updateButtonVisibility, 500);
+  }
+
+  // Initialize
+  async function init() {
     const enabled = await checkEnabled();
     if (!enabled) {
       return;
     }
 
-    // Wait for page to be ready
-    const setup = () => {
-      createDeleteButton();
-      startObserver();
-      // Initial check after a delay to let Angular render
-      setTimeout(updateButtonVisibility, 1000);
-    };
-
+    // Initial setup
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', setup);
     } else {
       setup();
     }
+
+    // Watch for SPA navigation (URL changes without page reload)
+    let lastUrl = location.href;
+    const urlObserver = new MutationObserver(() => {
+      if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        // Delay to let Angular render the new page
+        setTimeout(setup, 500);
+      }
+    });
+    urlObserver.observe(document.body, { childList: true, subtree: true });
+
+    // Also watch for History API navigation
+    const originalPushState = history.pushState;
+    history.pushState = function() {
+      originalPushState.apply(this, arguments);
+      setTimeout(setup, 500);
+    };
+
+    const originalReplaceState = history.replaceState;
+    history.replaceState = function() {
+      originalReplaceState.apply(this, arguments);
+      setTimeout(setup, 500);
+    };
+
+    window.addEventListener('popstate', () => {
+      setTimeout(setup, 500);
+    });
 
     // Listen for settings changes
     chrome.storage.onChanged.addListener((changes, namespace) => {
