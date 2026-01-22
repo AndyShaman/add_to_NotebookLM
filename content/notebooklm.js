@@ -181,6 +181,16 @@
     deleteButton.style.cursor = 'wait';
 
     try {
+      // Check if extension context is still valid
+      if (!chrome.runtime || !chrome.runtime.sendMessage) {
+        const reloadMsg = lang.startsWith('ru')
+          ? 'Расширение было обновлено. Пожалуйста, перезагрузите страницу (F5).'
+          : 'Extension was updated. Please reload the page (F5).';
+        alert(reloadMsg);
+        resetButton();
+        return;
+      }
+
       // Send delete request to background script
       const response = await chrome.runtime.sendMessage({
         cmd: 'delete-sources',
@@ -188,8 +198,14 @@
         sourceIds: selectedSources
       });
 
-      if (response.error) {
+      if (response && response.error) {
         alert('Error: ' + response.error);
+        resetButton();
+      } else if (!response) {
+        const reloadMsg = lang.startsWith('ru')
+          ? 'Нет ответа от расширения. Перезагрузите страницу (F5).'
+          : 'No response from extension. Please reload the page (F5).';
+        alert(reloadMsg);
         resetButton();
       } else {
         // Show success
@@ -207,7 +223,17 @@
       }
     } catch (error) {
       console.error('Delete error:', error);
-      alert('Error: ' + error.message);
+      const lang = document.documentElement.lang || 'en';
+
+      // Check if it's an extension context invalidation error
+      if (error.message && (error.message.includes('sendMessage') || error.message.includes('Extension context'))) {
+        const reloadMsg = lang.startsWith('ru')
+          ? 'Расширение было обновлено. Перезагрузите страницу (F5).'
+          : 'Extension was updated. Please reload the page (F5).';
+        alert(reloadMsg);
+      } else {
+        alert('Error: ' + error.message);
+      }
       resetButton();
     }
   }
