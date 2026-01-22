@@ -295,18 +295,28 @@ const NotebookLMAPI = {
     return response;
   },
 
-  // Delete multiple sources from notebook
+  // Delete multiple sources from notebook (batch operation)
+  // API supports max ~20 sources per request, so we chunk into batches
   async deleteSources(notebookId, sourceIds) {
-    const results = [];
-    for (const sourceId of sourceIds) {
-      try {
-        await this.deleteSource(notebookId, sourceId);
-        results.push({ sourceId, success: true });
-      } catch (error) {
-        results.push({ sourceId, success: false, error: error.message });
-      }
+    if (sourceIds.length === 0) {
+      return { success: true, deletedCount: 0 };
     }
-    return results;
+
+    const BATCH_SIZE = 20;
+    let deletedCount = 0;
+
+    // Split into chunks of BATCH_SIZE
+    for (let i = 0; i < sourceIds.length; i += BATCH_SIZE) {
+      const batch = sourceIds.slice(i, i + BATCH_SIZE);
+
+      // Batch delete: payload format is [[[id1], [id2], [id3]...]]
+      const batchPayload = [batch.map(id => [id])];
+      await this.rpc('tGMBJ', batchPayload, `/notebook/${notebookId}`);
+
+      deletedCount += batch.length;
+    }
+
+    return { success: true, deletedCount };
   }
 };
 
@@ -536,17 +546,14 @@ async function deleteSource(notebookId, sourceId) {
   }
 }
 
-// Delete multiple sources
+// Delete multiple sources (batch)
 async function deleteSources(notebookId, sourceIds) {
   try {
-    const results = await NotebookLMAPI.deleteSources(notebookId, sourceIds);
-    const successCount = results.filter(r => r.success).length;
-    const failCount = results.filter(r => !r.success).length;
+    const result = await NotebookLMAPI.deleteSources(notebookId, sourceIds);
     return {
-      success: failCount === 0,
-      results,
-      successCount,
-      failCount
+      success: true,
+      successCount: result.deletedCount || sourceIds.length,
+      failCount: 0
     };
   } catch (error) {
     return { error: error.message };
