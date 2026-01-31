@@ -15,6 +15,7 @@ task.md
 original_icon*.png
 
 # IDE
+.VSCodeCounter
 .idea/
 .vscode/
 *.swp
@@ -31,7 +32,7 @@ dist/
 *.log
 *.local
 
-# Test files
-test/
-tests/
-__tests__/
+# Node.js
+node_modules/
+package-lock.json
+coverage/

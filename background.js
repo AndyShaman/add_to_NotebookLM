@@ -2,6 +2,79 @@
 // Handles API calls and message passing between content scripts and popup
 
 // ============================================
+// Security Utilities
+// ============================================
+
+// UUID validation regex (matches standard UUID v4 format)
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Validate UUID format
+function isValidUUID(id) {
+  return typeof id === 'string' && UUID_REGEX.test(id);
+}
+
+// Validate URL - only allow http/https protocols
+function isValidUrl(url) {
+  if (typeof url !== 'string') return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+// Escape special regex characters
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Fetch with timeout using AbortController
+async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+// Rate limiter for API calls
+const RateLimiter = {
+  tokens: 10,
+  maxTokens: 10,
+  refillRate: 10, // tokens per second
+  lastRefill: Date.now(),
+
+  async acquire() {
+    // Refill tokens based on time elapsed
+    const now = Date.now();
+    const elapsed = (now - this.lastRefill) / 1000;
+    this.tokens = Math.min(this.maxTokens, this.tokens + elapsed * this.refillRate);
+    this.lastRefill = now;
+
+    if (this.tokens < 1) {
+      // Wait for token to become available
+      const waitTime = (1 - this.tokens) / this.refillRate * 1000;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      this.tokens = 1;
+    }
+
+    this.tokens -= 1;
+    return true;
+  }
+};
+
+// Maximum URLs allowed in a single request
+const MAX_URLS_PER_REQUEST = 200;
+
+// ============================================
 // NotebookLM API Client (inline)
 // ============================================
 
@@ -43,11 +116,18 @@ const NotebookLMAPI = {
     }
   },
 
-  // Extract token from HTML using regex
+  // Extract token from HTML using regex (with escaped key)
   extractToken(key, html) {
-    const regex = new RegExp(`"${key}":"([^"]+)"`);
+    const escapedKey = escapeRegex(key);
+    const regex = new RegExp(`"${escapedKey}":"([^"]+)"`);
     const match = regex.exec(html);
-    return match ? match[1] : null;
+    // Validate token format (should be alphanumeric with some special chars)
+    const token = match ? match[1] : null;
+    if (token && !/^[\w\-:.]+$/.test(token)) {
+      console.warn('Suspicious token format detected');
+      return null;
+    }
+    return token;
   },
 
   // List all notebooks
@@ -109,7 +189,23 @@ const NotebookLMAPI = {
 
   // Add multiple sources to notebook
   async addSources(notebookId, urls) {
-    const sources = urls.map(url => {
+    // Validate notebookId
+    if (!isValidUUID(notebookId)) {
+      throw new Error('Invalid notebook ID format');
+    }
+
+    // Validate and filter URLs
+    const validUrls = urls.filter(url => isValidUrl(url));
+    if (validUrls.length === 0) {
+      throw new Error('No valid URLs provided');
+    }
+
+    // Limit number of URLs per request
+    if (validUrls.length > MAX_URLS_PER_REQUEST) {
+      throw new Error(`Too many URLs. Maximum ${MAX_URLS_PER_REQUEST} allowed per request.`);
+    }
+
+    const sources = validUrls.map(url => {
       // YouTube URLs need special format
       if (url.includes('youtube.com') || url.includes('youtu.be')) {
         return [null, null, null, null, null, null, null, [url]];
@@ -124,6 +220,12 @@ const NotebookLMAPI = {
 
   // Add text content as source
   async addTextSource(notebookId, text, title = 'Imported content') {
+    if (!isValidUUID(notebookId)) {
+      throw new Error('Invalid notebook ID format');
+    }
+    if (typeof text !== 'string' || text.length === 0) {
+      throw new Error('Text content is required');
+    }
     const source = [[text, title]];
     const response = await this.rpc('izAoDd', [source, notebookId], `/notebook/${notebookId}`);
     return response;
@@ -131,6 +233,9 @@ const NotebookLMAPI = {
 
   // Check notebook status (sources loading)
   async getNotebookStatus(notebookId) {
+    if (!isValidUUID(notebookId)) {
+      throw new Error('Invalid notebook ID format');
+    }
     const response = await this.rpc('rLM1Ne', [notebookId, null, [2]], `/notebook/${notebookId}`);
     // Check if notebook ID appears in response (means sources are loaded)
     return !response.includes(`null,\\"${notebookId}`);
@@ -148,12 +253,16 @@ const NotebookLMAPI = {
 
   // Execute RPC call to NotebookLM
   async rpc(rpcId, params, sourcePath = '/') {
+    // Apply rate limiting
+    await RateLimiter.acquire();
+
     if (!this.tokens) {
       await this.getTokens();
     }
 
     const url = new URL(`${this.BASE_URL}/_/LabsTailwindUi/data/batchexecute`);
-    const reqId = Math.floor(Math.random() * 900000 + 100000).toString();
+    // Use crypto.randomUUID() for cryptographically secure request ID
+    const reqId = crypto.randomUUID().replace(/-/g, '').substring(0, 6);
 
     url.searchParams.set('rpcids', rpcId);
     url.searchParams.set('source-path', sourcePath);
@@ -170,14 +279,14 @@ const NotebookLMAPI = {
       'at': this.tokens.at
     });
 
-    const response = await fetch(url.toString(), {
+    const response = await fetchWithTimeout(url.toString(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       credentials: 'include',
       body: body.toString()
-    });
+    }, 30000); // 30 second timeout
 
     if (!response.ok) {
       throw new Error(`RPC call failed: ${response.status}`);
@@ -196,8 +305,11 @@ const NotebookLMAPI = {
 
       const text = await response.text();
 
-      // Extract JSON from postMessage call
-      const match = text.match(/postMessage\('(.*)'\s*,\s*'https:/);
+      // Limit text length to prevent ReDoS attacks
+      const safeText = text.length > 100000 ? text.substring(0, 100000) : text;
+
+      // Extract JSON from postMessage call (using non-greedy match to prevent ReDoS)
+      const match = safeText.match(/postMessage\('([^']*)'\s*,\s*'https:/);
       if (!match) return [];
 
       // Decode escaped characters
@@ -235,6 +347,9 @@ const NotebookLMAPI = {
 
   // Get notebook details with sources list
   async getNotebook(notebookId) {
+    if (!isValidUUID(notebookId)) {
+      throw new Error('Invalid notebook ID format');
+    }
     const response = await this.rpc('rLM1Ne', [notebookId, null, [2], null, 0], `/notebook/${notebookId}`);
     return this.parseNotebookDetails(response);
   },
@@ -289,6 +404,14 @@ const NotebookLMAPI = {
 
   // Delete a single source from notebook
   async deleteSource(notebookId, sourceId) {
+    // Validate UUIDs to prevent path traversal
+    if (!isValidUUID(notebookId)) {
+      throw new Error('Invalid notebook ID format');
+    }
+    if (!isValidUUID(sourceId)) {
+      throw new Error('Invalid source ID format');
+    }
+
     // Note: notebook_id is passed via source_path, NOT in params!
     // Payload structure: [[[source_id]]] (triple-nested)
     const response = await this.rpc('tGMBJ', [[[sourceId]]], `/notebook/${notebookId}`);
@@ -298,16 +421,30 @@ const NotebookLMAPI = {
   // Delete multiple sources from notebook (batch operation)
   // API supports max ~20 sources per request, so we chunk into batches
   async deleteSources(notebookId, sourceIds) {
+    // Validate notebook ID
+    if (!isValidUUID(notebookId)) {
+      throw new Error('Invalid notebook ID format');
+    }
+
     if (sourceIds.length === 0) {
       return { success: true, deletedCount: 0 };
+    }
+
+    // Validate all source IDs
+    const validSourceIds = sourceIds.filter(id => isValidUUID(id));
+    if (validSourceIds.length !== sourceIds.length) {
+      console.warn(`Filtered out ${sourceIds.length - validSourceIds.length} invalid source IDs`);
+    }
+    if (validSourceIds.length === 0) {
+      throw new Error('No valid source IDs provided');
     }
 
     const BATCH_SIZE = 20;
     let deletedCount = 0;
 
     // Split into chunks of BATCH_SIZE
-    for (let i = 0; i < sourceIds.length; i += BATCH_SIZE) {
-      const batch = sourceIds.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < validSourceIds.length; i += BATCH_SIZE) {
+      const batch = validSourceIds.slice(i, i + BATCH_SIZE);
 
       // Batch delete: payload format is [[[id1], [id2], [id3]...]]
       const batchPayload = [batch.map(id => [id])];
@@ -317,6 +454,57 @@ const NotebookLMAPI = {
     }
 
     return { success: true, deletedCount };
+  },
+
+  // Delete a notebook
+  async deleteNotebook(notebookId) {
+    // Validate notebook ID
+    if (!isValidUUID(notebookId)) {
+      throw new Error('Invalid notebook ID format');
+    }
+
+    console.log('[NLM API] deleteNotebook called:', notebookId);
+    try {
+      // Format: [[notebookId], [2]] - where [2] is the confirmation flag
+      const response = await this.rpc('WWINqb', [[notebookId], [2]]);
+      console.log('[NLM API] deleteNotebook response:', response);
+      return response;
+    } catch (error) {
+      console.error('[NLM API] deleteNotebook error:', error);
+      throw error;
+    }
+  },
+
+  // Delete multiple notebooks
+  async deleteNotebooks(notebookIds) {
+    // Validate all notebook IDs first
+    const validIds = notebookIds.filter(id => isValidUUID(id));
+    if (validIds.length !== notebookIds.length) {
+      console.warn(`Filtered out ${notebookIds.length - validIds.length} invalid notebook IDs`);
+    }
+
+    if (validIds.length === 0) {
+      return { success: false, deletedCount: 0, errors: [{ error: 'No valid notebook IDs provided' }] };
+    }
+
+    const results = [];
+    const errors = [];
+
+    for (const id of validIds) {
+      try {
+        await this.deleteNotebook(id);
+        results.push(id);
+      } catch (error) {
+        errors.push({ id, error: error.message });
+      }
+    }
+
+    // Return success only if all deletions succeeded
+    return {
+      success: errors.length === 0,
+      deletedCount: results.length,
+      errors: errors.length > 0 ? errors : undefined
+    };
   }
 };
 
@@ -371,7 +559,7 @@ async function handleMessage(request, sender) {
   currentAuthuser = storage.selectedAccount || storage.selected_account || 0;
 
   // Commands that don't require tokens
-  const noTokenCommands = ['list-accounts', 'ping', 'get-current-tab', 'get-all-tabs'];
+  const noTokenCommands = ['list-accounts', 'ping', 'get-current-tab', 'get-all-tabs', 'activate-notebook-edit-mode', 'deactivate-notebook-edit-mode'];
 
   // Ensure we have tokens for API calls
   if (!noTokenCommands.includes(cmd)) {
@@ -431,6 +619,18 @@ async function handleMessage(request, sender) {
 
     case 'delete-sources':
       return await deleteSources(params.notebookId, params.sourceIds);
+
+    case 'delete-notebook':
+      return await deleteNotebook(params.notebookId);
+
+    case 'delete-notebooks':
+      return await deleteNotebooks(params.notebookIds);
+
+    case 'activate-notebook-edit-mode':
+      return await activateNotebookEditMode(params.tabId);
+
+    case 'deactivate-notebook-edit-mode':
+      return await deactivateNotebookEditMode(params.tabId);
 
     default:
       console.log('Unknown command:', cmd);
@@ -560,6 +760,59 @@ async function deleteSources(notebookId, sourceIds) {
   }
 }
 
+// Delete single notebook
+async function deleteNotebook(notebookId) {
+  try {
+    await NotebookLMAPI.deleteNotebook(notebookId);
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// Delete multiple notebooks
+async function deleteNotebooks(notebookIds) {
+  console.log('[NLM] deleteNotebooks wrapper called:', notebookIds);
+  try {
+    const result = await NotebookLMAPI.deleteNotebooks(notebookIds);
+    console.log('[NLM] deleteNotebooks result:', result);
+    return {
+      success: true,
+      deletedCount: result.deletedCount
+    };
+  } catch (error) {
+    console.error('[NLM] deleteNotebooks error:', error);
+    return { error: error.message };
+  }
+}
+
+// Activate notebook edit mode on NotebookLM tab
+async function activateNotebookEditMode(tabId) {
+  console.log('[Background] activateNotebookEditMode called for tab:', tabId);
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, {
+      cmd: 'activate-notebook-edit-mode'
+    });
+    console.log('[Background] Response from content script:', response);
+    return response || { success: true };
+  } catch (error) {
+    console.error('[Background] Error sending message to content script:', error);
+    return { error: error.message };
+  }
+}
+
+// Deactivate notebook edit mode on NotebookLM tab
+async function deactivateNotebookEditMode(tabId) {
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, {
+      cmd: 'deactivate-notebook-edit-mode'
+    });
+    return response || { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
 // Get current active tab
 async function getCurrentTab() {
   try {
@@ -600,20 +853,14 @@ async function getAllTabs() {
 // Save URL(s) to notebook (main workflow)
 async function saveToNotebook({ title, urls, notebookId, createNew }) {
   try {
-    let targetNotebookId = notebookId;
-
-    // Create new notebook if requested
-    if (createNew || !notebookId) {
-      const emoji = urls.some(url => url.includes('youtube.com')) ? '📺' : '📔';
-      const result = await NotebookLMAPI.createNotebook(title || 'Imported content', emoji);
-      targetNotebookId = result.id;
-    }
-
-    // Add sources
-    await NotebookLMAPI.addSources(targetNotebookId, urls);
-
-    // Wait for sources to be processed
-    await NotebookLMAPI.waitForSources(targetNotebookId);
+    const emoji = urls.some(url => url.includes('youtube.com')) ? '📺' : '📔';
+    const targetNotebookId = await saveToNotebookCore({
+      title: title || 'Imported content',
+      urls,
+      notebookId,
+      createNew,
+      emoji
+    });
 
     // Get settings
     const settings = await chrome.storage.sync.get(['autoOpenNotebook']);
@@ -634,6 +881,30 @@ async function saveToNotebook({ title, urls, notebookId, createNew }) {
   }
 }
 
+// Shared logic for saving sources to a notebook (used by main + legacy flows)
+async function saveToNotebookCore({ title, urls, notebookId, createNew, emoji, onBeforeAdd }) {
+  let targetNotebookId = notebookId;
+  const willCreate = createNew || !notebookId;
+
+  // Create new notebook if requested
+  if (willCreate) {
+    const result = await NotebookLMAPI.createNotebook(title, emoji);
+    targetNotebookId = result.id;
+  }
+
+  if (onBeforeAdd) {
+    await onBeforeAdd({ notebookId: targetNotebookId, created: willCreate });
+  }
+
+  // Add sources
+  await NotebookLMAPI.addSources(targetNotebookId, urls);
+
+  // Wait for sources to be processed
+  await NotebookLMAPI.waitForSources(targetNotebookId);
+
+  return targetNotebookId;
+}
+
 // Save to NotebookLM (legacy format)
 async function saveToNotebookLMOriginal(title, urls, currentURL, notebookID) {
   try {
@@ -642,24 +913,18 @@ async function saveToNotebookLMOriginal(title, urls, currentURL, notebookID) {
       await chrome.storage.local.set({ [currentURL]: { label: 'Creating Notebook...' } });
     }
 
-    let targetNotebookId = notebookID;
-
-    // Create new notebook if no ID provided
-    if (!notebookID) {
-      const result = await NotebookLMAPI.createNotebook(title || 'YouTube Videos', '📺');
-      targetNotebookId = result.id;
-    }
-
-    // Update progress
-    if (currentURL) {
-      await chrome.storage.local.set({ [currentURL]: { label: 'Adding sources...' } });
-    }
-
-    // Add sources
-    await NotebookLMAPI.addSources(targetNotebookId, urls);
-
-    // Wait for sources to be processed
-    await NotebookLMAPI.waitForSources(targetNotebookId);
+    const targetNotebookId = await saveToNotebookCore({
+      title: title || 'YouTube Videos',
+      urls,
+      notebookId: notebookID,
+      createNew: !notebookID,
+      emoji: '📺',
+      onBeforeAdd: async () => {
+        if (currentURL) {
+          await chrome.storage.local.set({ [currentURL]: { label: 'Adding sources...' } });
+        }
+      }
+    });
 
     // Clear progress indicators
     if (currentURL) {

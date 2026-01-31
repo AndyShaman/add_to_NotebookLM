@@ -394,5 +394,51 @@
   "settings_bulkDeleteHint": {
     "message": "Показывает кнопку удаления при выборе нескольких источников в NotebookLM",
     "description": "Подсказка настройки массового удаления"
+  },
+  "popup_deleteNotebooks": {
+    "message": "Удалить",
+    "description": "Кнопка удаления ноутбуков"
+  },
+  "popup_bulkDelete": {
+    "message": "Массовое удаление",
+    "description": "Кнопка массового удаления"
+  },
+  "popup_done": {
+    "message": "Готово",
+    "description": "Кнопка Готово"
+  },
+  "popup_deleteSelected": {
+    "message": "Удалить выбранные",
+    "description": "Кнопка удаления выбранных ноутбуков"
+  },
+  "popup_confirmDeleteNotebooks": {
+    "message": "Удалить $COUNT$ ноутбук(ов)? Это действие нельзя отменить.",
+    "description": "Подтверждение удаления ноутбуков",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "popup_notebooksSelected": {
+    "message": "Выбрано: $COUNT$",
+    "description": "Количество выбранных ноутбуков",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "popup_notebooksDeleted": {
+    "message": "Удалено ноутбуков: $COUNT$!",
+    "description": "Сообщение об успешном удалении ноутбуков",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
   }
 }
