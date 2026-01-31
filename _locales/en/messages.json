@@ -394,5 +394,51 @@
   "settings_bulkDeleteHint": {
     "message": "Shows a delete button when you select multiple sources in NotebookLM",
     "description": "Bulk delete setting hint"
+  },
+  "popup_deleteNotebooks": {
+    "message": "Delete",
+    "description": "Delete notebooks button"
+  },
+  "popup_bulkDelete": {
+    "message": "Bulk Delete",
+    "description": "Bulk delete button"
+  },
+  "popup_done": {
+    "message": "Done",
+    "description": "Done button"
+  },
+  "popup_deleteSelected": {
+    "message": "Delete Selected",
+    "description": "Delete selected notebooks button"
+  },
+  "popup_confirmDeleteNotebooks": {
+    "message": "Delete $COUNT$ notebook(s)? This cannot be undone.",
+    "description": "Confirmation for deleting notebooks",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "popup_notebooksSelected": {
+    "message": "$COUNT$ selected",
+    "description": "Number of notebooks selected",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "popup_notebooksDeleted": {
+    "message": "$COUNT$ notebook(s) deleted!",
+    "description": "Notebooks deleted success message",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
   }
 }

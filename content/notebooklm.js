@@ -1,5 +1,6 @@
-// Content script for NotebookLM - Bulk Delete Sources
+// Content script for NotebookLM - Bulk Delete Sources & Notebook Edit Mode
 // Injects a delete button when multiple sources are selected
+// Also handles notebook edit mode for bulk notebook deletion from home page
 
 (function() {
   'use strict';
@@ -7,6 +8,13 @@
   let deleteButton = null;
   let isEnabled = true;
   let observer = null;
+
+  // === NOTEBOOK EDIT MODE (Home Page) ===
+  let notebookEditMode = false;
+  let deleteNotebooksButton = null;
+  let selectedNotebooks = new Set();
+  let editModeStylesInjected = false;
+  let editModeObserver = null;
 
   // Check if feature is enabled in settings
   async function checkEnabled() {
@@ -335,10 +343,413 @@
     setTimeout(updateButtonVisibility, 500);
   }
 
+  // === NOTEBOOK EDIT MODE FUNCTIONS ===
+
+  // Get language from document or navigator
+  function getLang() {
+    return document.documentElement.lang || navigator.language || 'en';
+  }
+
+  // Check if on home page
+  function isHomePage() {
+    const path = window.location.pathname;
+    if (path === '/' || path === '' || path === '/home') return true;
+
+    // Handle authuser-prefixed routes like /u/0/ or /u/1/home
+    if (path.startsWith('/u/')) {
+      const rest = path.replace(/^\/u\/\d+/, '');
+      return rest === '' || rest === '/' || rest === '/home';
+    }
+
+    return false;
+  }
+
+  // Check for notebook edit mode flag from storage
+  async function checkNotebookEditMode() {
+    if (!isHomePage()) return;
+
+    try {
+      const result = await chrome.storage.local.get(['notebookEditMode']);
+      if (result.notebookEditMode) {
+        // Clear the flag
+        await chrome.storage.local.remove(['notebookEditMode']);
+        // Wait for page to render
+        setTimeout(() => {
+          activateNotebookEditMode();
+        }, 1000);
+      }
+    } catch (e) {
+      console.error('Error checking notebook edit mode:', e);
+    }
+  }
+
+  // Inject edit mode styles
+  function injectEditModeStyles() {
+    if (editModeStylesInjected) return;
+
+    const style = document.createElement('style');
+    style.id = 'nlm-edit-mode-styles';
+    style.textContent = `
+      .nlm-notebook-checkbox {
+        position: absolute !important;
+        top: 12px !important;
+        left: 12px !important;
+        width: 20px !important;
+        height: 20px !important;
+        cursor: pointer !important;
+        z-index: 100 !important;
+        accent-color: #1a73e8 !important;
+      }
+
+      .nlm-notebook-card-wrapper {
+        position: relative !important;
+      }
+
+      .nlm-notebook-card-wrapper.nlm-selected {
+        outline: 2px solid #1a73e8 !important;
+        outline-offset: -2px !important;
+        border-radius: 12px !important;
+      }
+
+      .nlm-delete-notebooks-btn {
+        display: none;
+        position: fixed !important;
+        bottom: 24px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        z-index: 10000 !important;
+        align-items: center !important;
+        gap: 6px !important;
+        background: #c5221f !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 20px !important;
+        padding: 12px 24px !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        font-family: 'Google Sans', Roboto, sans-serif !important;
+        transition: background 0.2s !important;
+        white-space: nowrap !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+      }
+
+      .nlm-delete-notebooks-btn:hover:not(:disabled) {
+        background: #a31c1a !important;
+      }
+
+      .nlm-delete-notebooks-btn:disabled {
+        opacity: 0.6 !important;
+        cursor: wait !important;
+      }
+    `;
+    document.head.appendChild(style);
+    editModeStylesInjected = true;
+  }
+
+  // Activate notebook edit mode
+  function activateNotebookEditMode() {
+    console.log('[NLM Content] activateNotebookEditMode called, current state:', notebookEditMode);
+    if (notebookEditMode) return;
+
+    notebookEditMode = true;
+    console.log('[NLM Content] Injecting edit mode styles and checkboxes...');
+    injectEditModeStyles();
+
+    // Try to inject checkboxes with retry
+    let attempts = 0;
+    const tryInject = () => {
+      const injected = injectCheckboxesToNotebooks();
+      if (!injected && attempts < 10) {
+        attempts++;
+        setTimeout(tryInject, 500);
+      } else if (injected) {
+        showEditModeUI();
+      }
+      return injected;
+    };
+    const injectedNow = tryInject();
+
+    if (!injectedNow) {
+      if (editModeObserver) {
+        editModeObserver.disconnect();
+      }
+      editModeObserver = new MutationObserver(() => {
+        if (injectCheckboxesToNotebooks()) {
+          showEditModeUI();
+          editModeObserver.disconnect();
+          editModeObserver = null;
+        }
+      });
+      editModeObserver.observe(document.body, { childList: true, subtree: true });
+    }
+  }
+
+  // Inject checkboxes into notebook cards
+  function injectCheckboxesToNotebooks() {
+    let injectedCount = 0;
+
+    // ВАЖНО: Искать карточки ТОЛЬКО в контейнере пользовательских блокнотов
+    // .my-projects-container = "Недавние блокноты" (можно удалять)
+    // .featured-projects-container = "Рекомендуемые блокноты" (нельзя удалять)
+    const myProjectsContainer = document.querySelector('.my-projects-container');
+    console.log('[NLM] myProjectsContainer found:', !!myProjectsContainer);
+    if (!myProjectsContainer) return false;
+
+    const cards = myProjectsContainer.querySelectorAll('mat-card.project-button-card');
+    console.log('[NLM] Found cards:', cards.length);
+
+    cards.forEach(card => {
+      if (card.querySelector('.nlm-notebook-checkbox')) return;
+
+      // UUID находится внутри button.primary-action-button
+      // (карточка "Создать блокнот" не имеет этой кнопки - пропускаем)
+      const actionButton = card.querySelector('button.primary-action-button');
+
+      let notebookId = null;
+
+      if (actionButton) {
+        // Паттерн 1: project-UUID в aria-labelledby
+        const ariaLabel = actionButton.getAttribute('aria-labelledby') || '';
+        const uuidMatch1 = ariaLabel.match(/project-([a-f0-9-]{36})/i);
+        if (uuidMatch1) {
+          notebookId = uuidMatch1[1];
+        }
+
+        // Паттерн 2: UUID напрямую в aria-labelledby
+        if (!notebookId) {
+          const uuidMatch2 = ariaLabel.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+          if (uuidMatch2) notebookId = uuidMatch2[1];
+        }
+
+        // Паттерн 3: UUID в ID кнопки или data-атрибутах
+        if (!notebookId) {
+          const buttonId = actionButton.id || '';
+          const combined = buttonId + ' ' + (actionButton.dataset.projectId || '') + ' ' + (actionButton.dataset.notebookId || '');
+          const uuidMatch3 = combined.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+          if (uuidMatch3) notebookId = uuidMatch3[1];
+        }
+      }
+
+      // Паттерн 4: Поиск ссылки на блокнот
+      if (!notebookId) {
+        const link = card.querySelector('a[href*="/notebook/"]');
+        if (link) {
+          const hrefMatch = link.href.match(/\/notebook\/([a-f0-9-]{36})/i);
+          if (hrefMatch) notebookId = hrefMatch[1];
+        }
+      }
+
+      // Паттерн 5: Поиск UUID в HTML карточки (fallback)
+      if (!notebookId) {
+        const htmlMatch = card.outerHTML.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+        if (htmlMatch) notebookId = htmlMatch[1];
+      }
+
+      if (!notebookId) {
+        console.log('[NLM] Could not extract UUID for card');
+        return;
+      }
+
+      console.log('[NLM] Card UUID:', notebookId);
+
+      // Mark container
+      card.classList.add('nlm-notebook-card-wrapper');
+
+      // Create checkbox
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'nlm-notebook-checkbox';
+      checkbox.dataset.notebookId = notebookId;
+
+      checkbox.addEventListener('change', handleNotebookCheckboxChange);
+      checkbox.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Do NOT call e.preventDefault() - it blocks checkbox state change!
+      });
+
+      // Make container relative for positioning
+      const computedStyle = getComputedStyle(card);
+      if (computedStyle.position === 'static') {
+        card.style.position = 'relative';
+      }
+
+      // Insert checkbox
+      card.insertBefore(checkbox, card.firstChild);
+      injectedCount++;
+    });
+
+    console.log('[NLM Content] Injected checkboxes:', injectedCount);
+    return injectedCount > 0;
+  }
+
+  // Handle checkbox change
+  function handleNotebookCheckboxChange(e) {
+    const notebookId = e.target.dataset.notebookId;
+    const cardContainer = e.target.closest('.nlm-notebook-card-wrapper');
+
+    console.log('[NLM] Checkbox change:', { notebookId, checked: e.target.checked });
+
+    if (e.target.checked) {
+      selectedNotebooks.add(notebookId);
+      cardContainer?.classList.add('nlm-selected');
+    } else {
+      selectedNotebooks.delete(notebookId);
+      cardContainer?.classList.remove('nlm-selected');
+    }
+
+    console.log('[NLM] Selected count:', selectedNotebooks.size);
+    updateDeleteNotebooksButton();
+  }
+
+  // Show edit mode UI (Delete button only - "Done" is now in popup)
+  function showEditModeUI() {
+    if (deleteNotebooksButton) return;
+
+    // Create "Delete" button (hidden initially, shows when notebooks selected)
+    deleteNotebooksButton = document.createElement('button');
+    deleteNotebooksButton.id = 'nlm-delete-notebooks-btn';
+    deleteNotebooksButton.className = 'nlm-delete-notebooks-btn';
+    deleteNotebooksButton.addEventListener('click', handleDeleteNotebooksClick);
+
+    // Append to body (it's now fixed positioned)
+    document.body.appendChild(deleteNotebooksButton);
+  }
+
+
+  // Update delete notebooks button text
+  function updateDeleteNotebooksButton() {
+    if (!deleteNotebooksButton) return;
+
+    const count = selectedNotebooks.size;
+    const lang = getLang();
+    const isRu = lang.startsWith('ru');
+
+    if (count > 0) {
+      const text = isRu
+        ? `🗑️ Удалить (${count})`
+        : `🗑️ Delete (${count})`;
+      deleteNotebooksButton.innerHTML = text;
+      deleteNotebooksButton.style.display = 'flex';
+    } else {
+      deleteNotebooksButton.style.display = 'none';
+    }
+  }
+
+  // Handle delete notebooks click
+  async function handleDeleteNotebooksClick() {
+    const notebookIds = Array.from(selectedNotebooks);
+    console.log('[NLM] Delete clicked, selected:', notebookIds);
+    if (notebookIds.length === 0) return;
+
+    const lang = getLang();
+    const isRu = lang.startsWith('ru');
+
+    const confirmMsg = isRu
+      ? `Удалить ${notebookIds.length} ноутбук(ов)? Это действие нельзя отменить.`
+      : `Delete ${notebookIds.length} notebook(s)? This cannot be undone.`;
+
+    if (!confirm(confirmMsg)) return;
+
+    // Show loading
+    deleteNotebooksButton.disabled = true;
+    deleteNotebooksButton.innerHTML = isRu ? '⏳ Удаление...' : '⏳ Deleting...';
+
+    try {
+      // Check if extension context is valid
+      if (!chrome.runtime || !chrome.runtime.sendMessage) {
+        const reloadMsg = isRu
+          ? 'Расширение было обновлено. Перезагрузите страницу (F5).'
+          : 'Extension was updated. Please reload the page (F5).';
+        alert(reloadMsg);
+        resetDeleteNotebooksButton();
+        return;
+      }
+
+      const response = await chrome.runtime.sendMessage({
+        cmd: 'delete-notebooks',
+        notebookIds: notebookIds
+      });
+
+      if (response && response.error) {
+        alert('Error: ' + response.error);
+        resetDeleteNotebooksButton();
+      } else if (!response) {
+        const reloadMsg = isRu
+          ? 'Нет ответа от расширения. Перезагрузите страницу (F5).'
+          : 'No response from extension. Please reload the page (F5).';
+        alert(reloadMsg);
+        resetDeleteNotebooksButton();
+      } else {
+        // Success - show message and reload page to refresh the list
+        const successCount = response.deletedCount || notebookIds.length;
+        const successMsg = isRu
+          ? `✓ Удалено: ${successCount}`
+          : `✓ Deleted: ${successCount}`;
+
+        deleteNotebooksButton.innerHTML = successMsg;
+
+        // Reload page after short delay (like source deletion does)
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Delete notebooks error:', error);
+      if (error.message && (error.message.includes('sendMessage') || error.message.includes('Extension context'))) {
+        const reloadMsg = isRu
+          ? 'Расширение было обновлено. Перезагрузите страницу (F5).'
+          : 'Extension was updated. Please reload the page (F5).';
+        alert(reloadMsg);
+      } else {
+        alert('Error: ' + error.message);
+      }
+      resetDeleteNotebooksButton();
+    }
+  }
+
+  // Reset delete notebooks button
+  function resetDeleteNotebooksButton() {
+    if (!deleteNotebooksButton) return;
+    deleteNotebooksButton.disabled = false;
+    updateDeleteNotebooksButton();
+  }
+
+  // Deactivate notebook edit mode
+  function deactivateNotebookEditMode() {
+    notebookEditMode = false;
+    selectedNotebooks.clear();
+
+    if (editModeObserver) {
+      editModeObserver.disconnect();
+      editModeObserver = null;
+    }
+
+    // Remove checkboxes
+    document.querySelectorAll('.nlm-notebook-checkbox').forEach(cb => cb.remove());
+
+    // Remove selection styling
+    document.querySelectorAll('.nlm-notebook-card-wrapper').forEach(el => {
+      el.classList.remove('nlm-notebook-card-wrapper', 'nlm-selected');
+    });
+
+    // Remove delete button
+    deleteNotebooksButton?.remove();
+    deleteNotebooksButton = null;
+
+    // Remove styles
+    document.getElementById('nlm-edit-mode-styles')?.remove();
+    editModeStylesInjected = false;
+  }
+
+  // === END NOTEBOOK EDIT MODE FUNCTIONS ===
+
   // Initialize
   async function init() {
     const enabled = await checkEnabled();
     if (!enabled) {
+      // Still check for notebook edit mode even if bulk delete is disabled
+      await checkNotebookEditMode();
       return;
     }
 
@@ -356,6 +767,8 @@
         lastUrl = location.href;
         // Delay to let Angular render the new page
         setTimeout(setup, 500);
+        // Also check for notebook edit mode if navigated to home
+        setTimeout(checkNotebookEditMode, 600);
       }
     });
     urlObserver.observe(document.body, { childList: true, subtree: true });
@@ -389,7 +802,40 @@
     document.addEventListener('click', () => {
       setTimeout(updateButtonVisibility, 100);
     });
+
+    // Check for notebook edit mode on home page
+    await checkNotebookEditMode();
+
+    // Listen for messages from popup/background
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      console.log('[NLM Content] Message received:', request.cmd);
+      if (request.cmd === 'activate-notebook-edit-mode') {
+        if (isHomePage()) {
+          activateNotebookEditMode();
+          sendResponse({ success: true });
+        } else {
+          sendResponse({ success: false, error: 'Not on home page' });
+        }
+      } else if (request.cmd === 'deactivate-notebook-edit-mode') {
+        deactivateNotebookEditMode();
+        sendResponse({ success: true });
+      }
+      return true;
+    });
   }
 
   init();
+
+  // Export for testing (only in test environment)
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+      isHomePage,
+      getNotebookId,
+      getSelectedSources,
+      injectCheckboxesToNotebooks,
+      activateNotebookEditMode,
+      deactivateNotebookEditMode,
+      getLang
+    };
+  }
 })();

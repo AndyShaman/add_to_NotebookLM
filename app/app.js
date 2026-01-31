@@ -17,6 +17,14 @@ let allTabs = [];
 let selectedTabs = new Set();
 let currentTab = 'links';
 
+const {
+  sendMessage,
+  fillAccountSelect,
+  fillNotebookSelect,
+  setSingleOption,
+  getLastNotebook
+} = SharedUI;
+
 async function init() {
   // Initialize localization first
   if (window.I18n) {
@@ -129,29 +137,22 @@ async function loadNotebooks() {
 
     if (response.error) {
       const loginText = I18n ? I18n.get('popup_loginRequired') : 'Login to NotebookLM first';
-      notebookSelect.innerHTML = `<option value="">${loginText}</option>`;
+      setSingleOption(notebookSelect, loginText);
       showStatus('error', response.error);
       return;
     }
 
     notebooks = response.notebooks || [];
 
-    // Get last used notebook
-    const storage = await chrome.storage.sync.get(['lastNotebook']);
-    const lastNotebook = storage.lastNotebook;
+    const lastNotebook = await getLastNotebook();
 
-    // Populate select
-    if (notebooks.length === 0) {
-      const noNotebooksText = I18n ? I18n.get('popup_noNotebooks') : 'No notebooks found';
-      notebookSelect.innerHTML = `<option value="">${noNotebooksText}</option>`;
-    } else {
-      const sourcesText = I18n ? I18n.get('common_sources') : 'sources';
-      notebookSelect.innerHTML = notebooks.map(nb => `
-        <option value="${nb.id}" ${nb.id === lastNotebook ? 'selected' : ''}>
-          ${nb.emoji} ${nb.name} (${nb.sources} ${sourcesText})
-        </option>
-      `).join('');
-    }
+    const sourcesText = I18n ? I18n.get('common_sources') : 'sources';
+    const noNotebooksText = I18n ? I18n.get('popup_noNotebooks') : 'No notebooks found';
+    fillNotebookSelect(notebookSelect, notebooks, {
+      lastNotebook,
+      sourcesLabel: sourcesText,
+      emptyLabel: noNotebooksText
+    });
 
     updateImportButtons();
 
@@ -171,38 +172,85 @@ async function loadTabs() {
 
   } catch (error) {
     const failedText = I18n ? I18n.get('bulk_failedToLoad') : 'Failed to load tabs';
-    tabsContainer.innerHTML = `<div style="padding: 24px; text-align: center; color: #5f6368;">${failedText}</div>`;
+    tabsContainer.textContent = '';
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = 'padding: 24px; text-align: center; color: #5f6368;';
+    errorDiv.textContent = failedText;
+    tabsContainer.appendChild(errorDiv);
   }
 }
 
-// Render tabs list
+// Default favicon as data URI (safe constant)
+const DEFAULT_FAVICON = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌐</text></svg>');
+
+// Validate favicon URL - only allow safe protocols
+function getSafeFaviconUrl(url) {
+  if (!url || typeof url !== 'string') return DEFAULT_FAVICON;
+  try {
+    const parsed = new URL(url);
+    // Only allow http, https, and data URIs (for chrome:// internal pages)
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:' || parsed.protocol === 'data:') {
+      return url;
+    }
+  } catch {
+    // Invalid URL
+  }
+  return DEFAULT_FAVICON;
+}
+
+// Render tabs list (XSS-safe using DOM methods)
 function renderTabs() {
+  tabsContainer.textContent = '';
+
   if (allTabs.length === 0) {
     const noTabsText = I18n ? I18n.get('bulk_noTabs') : 'No tabs found';
-    tabsContainer.innerHTML = `<div style="padding: 24px; text-align: center; color: #5f6368;">${noTabsText}</div>`;
+    const emptyDiv = document.createElement('div');
+    emptyDiv.style.cssText = 'padding: 24px; text-align: center; color: #5f6368;';
+    emptyDiv.textContent = noTabsText;
+    tabsContainer.appendChild(emptyDiv);
     return;
   }
 
-  tabsContainer.innerHTML = allTabs.map(tab => `
-    <div class="tab-item ${selectedTabs.has(tab.id) ? 'selected' : ''}" data-id="${tab.id}">
-      <input type="checkbox" ${selectedTabs.has(tab.id) ? 'checked' : ''}>
-      <img class="tab-item-favicon" src="${tab.favIconUrl || 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>'}" alt="">
-      <div class="tab-item-info">
-        <div class="tab-item-title">${escapeHtml(tab.title || 'Untitled')}</div>
-        <div class="tab-item-url">${escapeHtml(tab.url)}</div>
-      </div>
-    </div>
-  `).join('');
+  allTabs.forEach(tab => {
+    const item = document.createElement('div');
+    item.className = 'tab-item' + (selectedTabs.has(tab.id) ? ' selected' : '');
+    item.dataset.id = tab.id;
 
-  // Add click listeners
-  tabsContainer.querySelectorAll('.tab-item').forEach(item => {
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = selectedTabs.has(tab.id);
+    item.appendChild(checkbox);
+
+    const favicon = document.createElement('img');
+    favicon.className = 'tab-item-favicon';
+    favicon.src = getSafeFaviconUrl(tab.favIconUrl);
+    favicon.alt = '';
+    favicon.onerror = () => { favicon.src = DEFAULT_FAVICON; };
+    item.appendChild(favicon);
+
+    const info = document.createElement('div');
+    info.className = 'tab-item-info';
+
+    const title = document.createElement('div');
+    title.className = 'tab-item-title';
+    title.textContent = SharedUI.cleanYouTubeTitle(tab.title) || 'Untitled';
+    info.appendChild(title);
+
+    const url = document.createElement('div');
+    url.className = 'tab-item-url';
+    url.textContent = tab.url;
+    info.appendChild(url);
+
+    item.appendChild(info);
+
     item.addEventListener('click', (e) => {
       if (e.target.type !== 'checkbox') {
-        const checkbox = item.querySelector('input[type="checkbox"]');
         checkbox.checked = !checkbox.checked;
       }
-      toggleTab(parseInt(item.dataset.id));
+      toggleTab(tab.id);
     });
+
+    tabsContainer.appendChild(item);
   });
 
   updateTabsCount();
@@ -256,24 +304,41 @@ function updateLinkCount() {
   updateImportButtons();
 }
 
-// Parse links from text
+// Validate URL - only allow http/https protocols
+function isValidUrl(url) {
+  if (typeof url !== 'string') return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+// Maximum URLs allowed per import (DoS protection)
+const MAX_URLS_PER_IMPORT = 200;
+
+// Parse links from text (with security validation)
 function parseLinks(text) {
   const lines = text.split('\n');
   const links = [];
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (trimmed && (trimmed.startsWith('http://') || trimmed.startsWith('https://'))) {
-      try {
-        new URL(trimmed); // Validate URL
-        links.push(trimmed);
-      } catch (e) {
-        // Invalid URL, skip
-      }
+    // Only allow http/https URLs
+    if (trimmed && isValidUrl(trimmed)) {
+      links.push(trimmed);
     }
   }
 
-  return [...new Set(links)]; // Remove duplicates
+  // Remove duplicates and limit to max allowed
+  const uniqueLinks = [...new Set(links)];
+  if (uniqueLinks.length > MAX_URLS_PER_IMPORT) {
+    console.warn(`Too many URLs (${uniqueLinks.length}), limiting to ${MAX_URLS_PER_IMPORT}`);
+    return uniqueLinks.slice(0, MAX_URLS_PER_IMPORT);
+  }
+
+  return uniqueLinks;
 }
 
 // Update import buttons state
@@ -395,14 +460,10 @@ async function importUrls(notebookId, urls) {
 
     const notebook = notebooks.find(n => n.id === notebookId);
     const notebookUrl = `https://notebooklm.google.com/notebook/${notebookId}`;
-    const openText = I18n ? I18n.get('bulk_openNotebook') : 'Open notebook';
 
     if (failed === 0) {
       const successText = I18n ? I18n.get('popup_success') : 'Successfully imported!';
-      showStatus('success', `
-        ✓ ${successText} (${imported})
-        <br><a href="${notebookUrl}" target="_blank">${openText} →</a>
-      `);
+      showStatus('success', `✓ ${successText} (${imported})`, notebookUrl);
 
       // Clear inputs
       if (currentTab === 'links') {
@@ -413,10 +474,7 @@ async function importUrls(notebookId, urls) {
         renderTabs();
       }
     } else if (imported > 0) {
-      showStatus('info', `
-        ${imported} OK, ${failed} failed.
-        <br><a href="${notebookUrl}" target="_blank">${openText} →</a>
-      `);
+      showStatus('info', `${imported} OK, ${failed} failed.`, notebookUrl);
     } else {
       const errorText = I18n ? I18n.get('popup_error') : 'Failed to import items. Please try again.';
       showStatus('error', errorText);
@@ -448,9 +506,9 @@ function hideProgress() {
   progressFill.style.width = '0%';
 }
 
-// Show status message
+// Show status message (XSS-safe)
 let statusTimeout = null;
-function showStatus(type, message) {
+function showStatus(type, message, notebookUrl = null) {
   // Clear any existing timeout
   if (statusTimeout) {
     clearTimeout(statusTimeout);
@@ -458,7 +516,23 @@ function showStatus(type, message) {
   }
 
   statusDiv.className = `status visible ${type}`;
-  statusDiv.innerHTML = message;
+  statusDiv.textContent = '';
+
+  // Create message content
+  const messageSpan = document.createElement('span');
+  messageSpan.textContent = message;
+  statusDiv.appendChild(messageSpan);
+
+  // Add notebook link if provided
+  if (notebookUrl) {
+    statusDiv.appendChild(document.createElement('br'));
+    const openText = I18n ? I18n.get('bulk_openNotebook') : 'Open notebook';
+    const link = document.createElement('a');
+    link.href = notebookUrl;
+    link.target = '_blank';
+    link.textContent = openText + ' →';
+    statusDiv.appendChild(link);
+  }
 
   // Auto-hide after 5 seconds for success/info messages
   if (type === 'success' || type === 'info') {
@@ -478,19 +552,6 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
-}
-
-// Send message to background script
-function sendMessage(message) {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, response => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-      } else {
-        resolve(response || {});
-      }
-    });
-  });
 }
 
 // Load settings
@@ -516,27 +577,10 @@ async function loadSettings() {
     const response = await sendMessage({ cmd: 'list-accounts' });
     const accounts = response.accounts || [];
 
-    // Populate account selector
     if (settingsAccountSelect) {
-      settingsAccountSelect.innerHTML = '';
-
-      if (accounts.length > 0) {
-        accounts.forEach((acc, index) => {
-          const option = document.createElement('option');
-          option.value = acc.index !== undefined ? acc.index : index;
-          option.textContent = acc.email || acc.name || `Account ${index + 1}`;
-          if ((acc.index !== undefined ? acc.index : index) === (storage.selectedAccount || 0)) {
-            option.selected = true;
-          }
-          settingsAccountSelect.appendChild(option);
-        });
-      } else {
-        // No accounts found - show single default option
-        const option = document.createElement('option');
-        option.value = 0;
-        option.textContent = 'Default';
-        settingsAccountSelect.appendChild(option);
-      }
+      fillAccountSelect(settingsAccountSelect, accounts, {
+        selectedAccount: storage.selectedAccount || 0
+      });
     }
 
     // Set auto-open checkbox

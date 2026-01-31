@@ -3,10 +3,9 @@
 document.addEventListener('DOMContentLoaded', init);
 
 // DOM elements
-let notebookSelect, addBtn, newNotebookBtn, bulkBtn, tabsBtn;
+let notebookSelect, addBtn, newNotebookBtn, bulkBtn, tabsBtn, deleteNotebooksBtn;
 let accountSelect, statusDiv, currentUrlDiv, settingsBtn, openNotebookBtn;
 let newNotebookModal, newNotebookInput, modalCancel, modalCreate;
-
 // Current state
 let currentTab = null;
 let notebooks = [];
@@ -25,6 +24,7 @@ async function init() {
   newNotebookBtn = document.getElementById('new-notebook-btn');
   bulkBtn = document.getElementById('bulk-btn');
   tabsBtn = document.getElementById('tabs-btn');
+  deleteNotebooksBtn = document.getElementById('delete-notebooks-btn');
   accountSelect = document.getElementById('account-select');
   statusDiv = document.getElementById('status');
   currentUrlDiv = document.getElementById('current-url');
@@ -40,6 +40,7 @@ async function init() {
   newNotebookBtn.addEventListener('click', showNewNotebookModal);
   bulkBtn.addEventListener('click', openBulkImport);
   tabsBtn.addEventListener('click', openTabsImport);
+  deleteNotebooksBtn.addEventListener('click', handleDeleteButtonClick);
   accountSelect.addEventListener('change', handleAccountChange);
   notebookSelect.addEventListener('change', handleNotebookChange);
   modalCancel.addEventListener('click', hideNewNotebookModal);
@@ -64,10 +65,10 @@ function t(key, fallback) {
 // Load current tab info
 async function loadCurrentTab() {
   try {
-    const response = await sendMessage({ cmd: 'get-current-tab' });
+    const response = await SharedUI.sendMessage({ cmd: 'get-current-tab' });
     if (response.tab) {
       currentTab = response.tab;
-      currentUrlDiv.textContent = currentTab.title || currentTab.url;
+      currentUrlDiv.textContent = SharedUI.cleanYouTubeTitle(currentTab.title) || currentTab.url;
       currentUrlDiv.title = currentTab.url;
 
       // Detect YouTube page type
@@ -95,61 +96,57 @@ function detectYouTubePageType(url) {
     // Dedicated playlist page
     youtubePageType = 'playlist';
     const playlistText = t('popup_addPlaylist', 'Add Playlist to Notebook');
-    addBtn.innerHTML = `<span>📋</span> ${playlistText}`;
+    setButtonContent(addBtn, '📋', playlistText);
     const playlistLabel = t('popup_playlist', 'Playlist');
-    currentUrlDiv.innerHTML = `📋 <strong>${playlistLabel}:</strong> ${currentTab.title.replace(' - YouTube', '')}`;
+    setLabeledContent(currentUrlDiv, '📋', playlistLabel, SharedUI.cleanYouTubeTitle(currentTab.title));
   } else if (url.includes('/watch') && hasPlaylistParam) {
     // Watching a video from a playlist
     youtubePageType = 'playlist_video';
     const addAllText = t('popup_addAllPlaylist', 'Add All Playlist Videos');
-    addBtn.innerHTML = `<span>📋</span> ${addAllText}`;
+    setButtonContent(addBtn, '📋', addAllText);
     const videoFromPlaylist = t('popup_videoFromPlaylist', 'Video from Playlist');
     const clickToAdd = t('popup_clickToAddAll', 'Click to add all videos');
-    currentUrlDiv.innerHTML = `📋 <strong>${videoFromPlaylist}</strong> - ${clickToAdd}`;
+    setLabeledContent(currentUrlDiv, '📋', videoFromPlaylist, clickToAdd);
   } else if (url.includes('/watch')) {
     // Single video
     youtubePageType = 'video';
     const addVideoText = t('popup_addVideo', 'Add Video to Notebook');
-    addBtn.innerHTML = `<span>➕</span> ${addVideoText}`;
+    setButtonContent(addBtn, '➕', addVideoText);
   } else if (url.includes('/@') || url.includes('/channel/') || url.includes('/c/')) {
     youtubePageType = 'channel';
     const addChannelText = t('popup_addChannelVideos', 'Add Channel Videos to Notebook');
-    addBtn.innerHTML = `<span>📺</span> ${addChannelText}`;
+    setButtonContent(addBtn, '📺', addChannelText);
     const channelLabel = t('popup_channel', 'Channel');
-    currentUrlDiv.innerHTML = `📺 <strong>${channelLabel}:</strong> ${currentTab.title.replace(' - YouTube', '')}`;
+    setLabeledContent(currentUrlDiv, '📺', channelLabel, SharedUI.cleanYouTubeTitle(currentTab.title));
   }
+}
+
+// Safe DOM manipulation helpers to prevent XSS
+function setButtonContent(btn, emoji, text) {
+  btn.textContent = '';
+  const span = document.createElement('span');
+  span.textContent = emoji;
+  btn.appendChild(span);
+  btn.appendChild(document.createTextNode(' ' + text));
+}
+
+function setLabeledContent(container, emoji, label, value) {
+  container.textContent = '';
+  container.appendChild(document.createTextNode(emoji + ' '));
+  const strong = document.createElement('strong');
+  strong.textContent = label + ':';
+  container.appendChild(strong);
+  container.appendChild(document.createTextNode(' ' + value));
 }
 
 // Load Google accounts
 async function loadAccounts() {
   try {
-    const response = await sendMessage({ cmd: 'list-accounts' });
+    const response = await SharedUI.sendMessage({ cmd: 'list-accounts' });
     const accounts = response.accounts || [];
+    const selectedAccount = await SharedUI.getSelectedAccount();
 
-    // Get saved account
-    const storage = await chrome.storage.sync.get(['selectedAccount']);
-    const selectedAccount = storage.selectedAccount || 0;
-
-    // Populate account selector
-    accountSelect.innerHTML = '';
-
-    if (accounts.length > 0) {
-      accounts.forEach((acc, index) => {
-        const option = document.createElement('option');
-        option.value = acc.index !== undefined ? acc.index : index;
-        option.textContent = acc.email || acc.name || `Account ${index + 1}`;
-        if ((acc.index !== undefined ? acc.index : index) === selectedAccount) {
-          option.selected = true;
-        }
-        accountSelect.appendChild(option);
-      });
-    } else {
-      // No accounts found - show single default option
-      const option = document.createElement('option');
-      option.value = 0;
-      option.textContent = 'Default';
-      accountSelect.appendChild(option);
-    }
+    SharedUI.fillAccountSelect(accountSelect, accounts, { selectedAccount });
   } catch (error) {
     console.error('Error loading accounts:', error);
   }
@@ -161,12 +158,12 @@ async function loadNotebooks() {
     const loadingText = t('popup_loadingNotebooks', 'Loading notebooks...');
     showStatus('loading', loadingText);
 
-    const response = await sendMessage({ cmd: 'list-notebooks' });
+    const response = await SharedUI.sendMessage({ cmd: 'list-notebooks' });
 
     if (response.error) {
       showStatus('error', response.error);
       const loginText = t('popup_loginRequired', 'Login to NotebookLM first');
-      notebookSelect.innerHTML = `<option value="">${loginText}</option>`;
+      SharedUI.setSingleOption(notebookSelect, loginText);
       addBtn.disabled = true;
       return;
     }
@@ -174,30 +171,16 @@ async function loadNotebooks() {
     notebooks = response.notebooks || [];
     hideStatus();
 
-    // Get last used notebook
-    const storage = await chrome.storage.sync.get(['lastNotebook']);
-    const lastNotebook = storage.lastNotebook;
+    const lastNotebook = await SharedUI.getLastNotebook();
 
-    // Populate notebook selector
-    notebookSelect.innerHTML = '';
-
-    if (notebooks.length === 0) {
-      const noNotebooksText = t('popup_noNotebooks', 'No notebooks found');
-      notebookSelect.innerHTML = `<option value="">${noNotebooksText}</option>`;
-      addBtn.disabled = true;
-    } else {
-      const sourcesText = t('common_sources', 'sources');
-      notebooks.forEach(nb => {
-        const option = document.createElement('option');
-        option.value = nb.id;
-        option.textContent = `${nb.emoji} ${nb.name} (${nb.sources} ${sourcesText})`;
-        if (nb.id === lastNotebook) {
-          option.selected = true;
-        }
-        notebookSelect.appendChild(option);
-      });
-      addBtn.disabled = false;
-    }
+    const sourcesText = t('common_sources', 'sources');
+    const noNotebooksText = t('popup_noNotebooks', 'No notebooks found');
+    const hasNotebooks = SharedUI.fillNotebookSelect(notebookSelect, notebooks, {
+      lastNotebook,
+      sourcesLabel: sourcesText,
+      emptyLabel: noNotebooksText
+    });
+    addBtn.disabled = !hasNotebooks;
   } catch (error) {
     console.error('Error loading notebooks:', error);
     const errorText = t('popup_error', 'Failed to load notebooks');
@@ -234,7 +217,7 @@ async function handleAddToNotebook() {
       showStatus('loading', `${addingText} (${videoUrls.length})`);
 
       // Add all videos to notebook
-      const response = await sendMessage({
+      const response = await SharedUI.sendMessage({
         cmd: 'add-sources',
         notebookId: notebookId,
         urls: videoUrls
@@ -257,7 +240,7 @@ async function handleAddToNotebook() {
       const loadingText = t('popup_loading', 'Adding to notebook...');
       showStatus('loading', loadingText);
 
-      const response = await sendMessage({
+      const response = await SharedUI.sendMessage({
         cmd: 'add-source',
         notebookId: notebookId,
         url: currentTab.url
@@ -284,10 +267,27 @@ async function handleAddToNotebook() {
   }
 }
 
+// Validate that URL is a legitimate YouTube URL
+function isValidYouTubeUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname === 'www.youtube.com' || parsed.hostname === 'youtube.com';
+  } catch {
+    return false;
+  }
+}
+
 // Get YouTube video URLs from content script
 async function getYouTubeVideoUrls() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    // Security: Verify origin before executing script to prevent injection on spoofed pages
+    if (!isValidYouTubeUrl(tab.url)) {
+      console.error('Security: Refusing to execute script on non-YouTube page');
+      return [];
+    }
 
     // Use scripting API to extract URLs directly from the page
     const results = await chrome.scripting.executeScript({
@@ -296,7 +296,9 @@ async function getYouTubeVideoUrls() {
       args: [youtubePageType]
     });
 
-    return results[0]?.result || [];
+    // Validate returned URLs
+    const urls = results[0]?.result || [];
+    return urls.filter(url => isValidYouTubeUrl(url));
   } catch (error) {
     console.error('Error getting video URLs:', error);
     return [];
@@ -376,27 +378,34 @@ function extractYouTubeUrls(pageType) {
   return [...new Set(urls)].slice(0, 50);
 }
 
-// Show success message with action buttons
+// Show success message with action buttons (XSS-safe)
 function showSuccessWithActions(notebook, videoCount = null) {
   const notebookUrl = `https://notebooklm.google.com/notebook/${notebook.id}`;
-  const countText = videoCount ? `${videoCount} ${t('common_videos', 'videos')}` : t('common_item', 'page');
   const addedToText = t('popup_addedTo', 'Added to');
   const openNotebookText = t('popup_openNotebook', 'Open Notebook');
 
   statusDiv.className = 'status success';
-  statusDiv.innerHTML = `
-    <div>✓ ${addedToText} "${notebook.emoji} ${notebook.name}"</div>
-    <div class="success-actions">
-      <button class="btn btn-secondary" id="open-notebook-btn">
-        ${openNotebookText}
-      </button>
-    </div>
-  `;
+  statusDiv.textContent = '';
 
-  // Add click listener (CSP doesn't allow inline onclick)
-  document.getElementById('open-notebook-btn').addEventListener('click', () => {
+  // Create message div
+  const messageDiv = document.createElement('div');
+  messageDiv.textContent = `✓ ${addedToText} "${notebook.emoji} ${notebook.name}"`;
+  statusDiv.appendChild(messageDiv);
+
+  // Create actions div
+  const actionsDiv = document.createElement('div');
+  actionsDiv.className = 'success-actions';
+
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-secondary';
+  btn.id = 'open-notebook-btn';
+  btn.textContent = openNotebookText;
+  btn.addEventListener('click', () => {
     chrome.tabs.create({ url: notebookUrl });
   });
+
+  actionsDiv.appendChild(btn);
+  statusDiv.appendChild(actionsDiv);
 }
 
 // Show new notebook modal
@@ -431,7 +440,7 @@ async function handleCreateNotebook() {
     const emoji = isYouTube ? '📺' : '📔';
 
     // Create notebook
-    const createResponse = await sendMessage({
+    const createResponse = await SharedUI.sendMessage({
       cmd: 'create-notebook',
       title: name,
       emoji: emoji
@@ -446,7 +455,7 @@ async function handleCreateNotebook() {
 
     // Add current page to new notebook
     if (currentTab?.url) {
-      await sendMessage({
+      await SharedUI.sendMessage({
         cmd: 'add-source',
         notebookId: notebook.id,
         url: currentTab.url
@@ -519,12 +528,16 @@ function openTabsImport() {
   });
 }
 
-// Show status message
+// Show status message (XSS-safe)
 function showStatus(type, message) {
   statusDiv.className = `status ${type}`;
+  statusDiv.textContent = '';
 
   if (type === 'loading') {
-    statusDiv.innerHTML = `<div class="spinner"></div>${message}`;
+    const spinner = document.createElement('div');
+    spinner.className = 'spinner';
+    statusDiv.appendChild(spinner);
+    statusDiv.appendChild(document.createTextNode(message));
   } else {
     statusDiv.textContent = message;
   }
@@ -543,15 +556,97 @@ function openSettings() {
   });
 }
 
-// Send message to background script
-function sendMessage(message) {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, response => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-      } else {
-        resolve(response || {});
-      }
-    });
-  });
+// Check if delete button is in edit mode
+function isDeleteButtonInEditMode() {
+  return deleteNotebooksBtn.classList.contains('edit-mode-active');
 }
+
+// Set delete button to edit mode (show "Done")
+function setDeleteButtonEditMode(active) {
+  if (active) {
+    deleteNotebooksBtn.classList.add('edit-mode-active');
+    deleteNotebooksBtn.querySelector('.btn-content-normal').style.display = 'none';
+    deleteNotebooksBtn.querySelector('.btn-content-done').style.display = 'inline';
+  } else {
+    deleteNotebooksBtn.classList.remove('edit-mode-active');
+    deleteNotebooksBtn.querySelector('.btn-content-normal').style.display = 'inline';
+    deleteNotebooksBtn.querySelector('.btn-content-done').style.display = 'none';
+  }
+}
+
+// Handle delete button click - toggles between "Bulk Delete" and "Done" modes
+async function handleDeleteButtonClick() {
+  if (isDeleteButtonInEditMode()) {
+    // Currently in edit mode - deactivate
+    await handleDoneEditModeClick();
+  } else {
+    // Not in edit mode - activate
+    await handleDeleteNotebooksClick();
+  }
+}
+
+// Handle delete notebooks button click - opens NotebookLM with edit mode flag
+async function handleDeleteNotebooksClick() {
+  console.log('[Popup] handleDeleteNotebooksClick called');
+  // Find NotebookLM tab
+  const tabs = await chrome.tabs.query({ url: 'https://notebooklm.google.com/*' });
+  console.log('[Popup] Found NotebookLM tabs:', tabs.length);
+
+  let targetTab;
+
+  if (tabs.length > 0) {
+    targetTab = tabs[0];
+
+    // Check if on home page
+    const isHomePage = targetTab.url === 'https://notebooklm.google.com/' ||
+                       targetTab.url === 'https://notebooklm.google.com' ||
+                       targetTab.url.match(/^https:\/\/notebooklm\.google\.com\/?\?/) ||
+                       targetTab.url.match(/^https:\/\/notebooklm\.google\.com\/u\/\d+\/?$/);
+
+    if (!isHomePage) {
+      // Navigate to home page - this will trigger content script init
+      console.log('[Popup] Not on home page, navigating...');
+      await chrome.storage.local.set({ notebookEditMode: true });
+      await chrome.tabs.update(targetTab.id, { url: 'https://notebooklm.google.com/' });
+    } else {
+      // Already on home page - send message to activate edit mode directly
+      console.log('[Popup] Already on home page, sending message to tab:', targetTab.id);
+      try {
+        const response = await SharedUI.sendMessage({ cmd: 'activate-notebook-edit-mode', tabId: targetTab.id });
+        console.log('[Popup] Response from background:', response);
+      } catch (e) {
+        console.error('[Popup] Error sending message:', e);
+        // Fallback: use storage flag and reload
+        await chrome.storage.local.set({ notebookEditMode: true });
+        await chrome.tabs.reload(targetTab.id);
+      }
+    }
+    // Activate the tab LAST - this closes the popup, so all logic must be done before
+    await chrome.tabs.update(targetTab.id, { active: true });
+  } else {
+    // Create new tab - content script will check flag on init
+    await chrome.storage.local.set({ notebookEditMode: true });
+    await chrome.tabs.create({ url: 'https://notebooklm.google.com/' });
+  }
+
+  // Switch button to "Done" state
+  setDeleteButtonEditMode(true);
+}
+
+// Handle "Done" button click - deactivates edit mode
+async function handleDoneEditModeClick() {
+  // Find NotebookLM tab and send deactivate message
+  const tabs = await chrome.tabs.query({ url: 'https://notebooklm.google.com/*' });
+
+  if (tabs.length > 0) {
+    try {
+      await SharedUI.sendMessage({ cmd: 'deactivate-notebook-edit-mode', tabId: tabs[0].id });
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+
+  // Switch button back to normal state
+  setDeleteButtonEditMode(false);
+}
+
