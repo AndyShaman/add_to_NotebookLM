@@ -454,12 +454,21 @@ function extractYouTubeUrls(pageType) {
       });
     }
   } else if (pageType === 'channel') {
-    // Get videos from channel page
-    const videos = document.querySelectorAll('ytd-rich-grid-media a#video-title-link, ytd-grid-video-renderer a#video-title');
+    // Get videos from channel page. YouTube DOM evolves — try new layout first,
+    // fall back to legacy selectors if present.
+    const videos = document.querySelectorAll(
+      'ytd-rich-item-renderer h3 a[href*="/watch"], ' +
+      'ytd-rich-grid-media a#video-title-link, ' +
+      'ytd-grid-video-renderer a#video-title'
+    );
     videos.forEach(video => {
       const href = video.getAttribute('href');
       if (href && href.includes('/watch')) {
-        urls.push(`https://www.youtube.com${href.split('&')[0]}`);
+        const url = new URL(href, 'https://www.youtube.com');
+        const videoId = url.searchParams.get('v');
+        if (videoId) {
+          urls.push(`https://www.youtube.com/watch?v=${videoId}`);
+        }
       }
     });
   }
