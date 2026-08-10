@@ -396,7 +396,7 @@
     "description": "Подсказка настройки синхронизации Drive"
   },
   "about_trademark": {
-    "message": "NotebookLM — товарный знак Google LLC. Расширение не аффилировано с Google.",
+    "message": "NotebookLM и Gemini — товарные знаки Google LLC. Расширение — независимый проект, не аффилировано с Google.",
     "description": "Уведомление о товарном знаке"
   },
   "onboarding_subtitle": {

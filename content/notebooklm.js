@@ -81,12 +81,14 @@
       background: rgba(255, 59, 48, 0.15);
       color: #FF3B30;
       border: 1px solid rgba(255, 59, 48, 0.3);
-      border-radius: 50px;
-      padding: 10px 20px;
+      border-radius: 96px;
+      height: 32px;
+      padding: 0 16px;
+      box-sizing: border-box;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Google Sans', Roboto, sans-serif;
+      font-family: 'Google Sans Text', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Google Sans', Roboto, sans-serif;
       transition: all 0.2s ease;
       margin-left: 12px;
       white-space: nowrap;
@@ -327,6 +329,7 @@
       padding: 0;
       transition: all 0.2s ease;
       flex-shrink: 0;
+      margin-left: auto;
     `;
 
     syncButton.addEventListener('mouseenter', () => {
@@ -353,7 +356,7 @@
 
   function insertSyncButton() {
     if (!syncButton) return;
-    if (syncButton.parentElement) return; // Already inserted
+    if (syncButton.parentElement && document.contains(syncButton)) return; // Already inserted
 
     // Find the "Источники" / "Sources" heading
     const headings = document.querySelectorAll('h2, h3, [class*="heading"], [class*="title"]');
@@ -366,27 +369,32 @@
       }
     }
 
-    if (sourcesHeading) {
-      // Find the parent container (flex row with heading + collapse icon)
-      let container = sourcesHeading.parentElement;
-      if (container) {
-        // Insert before the last direct child (collapse icon DIV)
-        const lastChild = container.lastElementChild;
-        if (lastChild && lastChild !== sourcesHeading && lastChild !== syncButton) {
-          container.insertBefore(syncButton, lastChild);
-        } else {
-          container.appendChild(syncButton);
-        }
-        return;
+    if (!sourcesHeading) return;
+
+    // Walk up to the nearest flex ancestor (the panel header row with heading + collapse icon)
+    let container = null;
+    let node = sourcesHeading.parentElement;
+    for (let i = 0; i < 5 && node; i++) {
+      if (getComputedStyle(node).display === 'flex') {
+        container = node;
+        break;
       }
+      node = node.parentElement;
     }
 
-    // Fallback: fixed position near the sources header
-    syncButton.style.position = 'fixed';
-    syncButton.style.top = '90px';
-    syncButton.style.left = '350px';
-    syncButton.style.zIndex = '10000';
-    document.body.appendChild(syncButton);
+    if (container) {
+      // Insert before the last direct child (collapse icon DIV) so the button sits in the same row
+      const lastChild = container.lastElementChild;
+      if (lastChild && lastChild !== syncButton && !lastChild.contains(sourcesHeading)) {
+        container.insertBefore(syncButton, lastChild);
+      } else {
+        container.appendChild(syncButton);
+      }
+      return;
+    }
+
+    // Fallback: the heading itself is a flex row
+    sourcesHeading.appendChild(syncButton);
   }
 
   async function handleSyncClick() {

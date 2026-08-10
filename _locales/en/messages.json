@@ -396,7 +396,7 @@
     "description": "Drive sync setting hint"
   },
   "about_trademark": {
-    "message": "NotebookLM is a trademark of Google LLC. This extension is not affiliated with Google.",
+    "message": "NotebookLM and Gemini are trademarks of Google LLC. This extension is an independent project, not affiliated with Google.",
     "description": "Trademark disclaimer"
   },
   "onboarding_subtitle": {
