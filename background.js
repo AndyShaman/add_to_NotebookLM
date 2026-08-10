@@ -23,7 +23,7 @@ async function fetchWithTimeout(url, options = {}, timeout = 30000) {
 // ============================================
 
 const NotebookLMAPI = {
-  BASE_URL: 'https://notebooklm.google.com',
+  BASE_URL: 'https://notebook.google.com',
   tokens: null,
 
   // Get authentication tokens from NotebookLM page
@@ -159,7 +159,7 @@ const NotebookLMAPI = {
   // Get a resumable upload URL from SCOTTY (step 2 of PDF upload)
   async getUploadUrl(notebookId, filename, sourceId, byteLength) {
     const authuser = this.tokens.authuser || 0;
-    const url = `https://notebooklm.google.com/upload/_/?authuser=${authuser}`;
+    const url = `https://notebook.google.com/upload/_/?authuser=${authuser}`;
     const body = JSON.stringify({
       PROJECT_ID: notebookId,
       SOURCE_NAME: filename,
@@ -904,7 +904,7 @@ async function saveToNotebookLMOriginal(title, urls, currentURL, notebookID) {
     const authParam = currentAuthuser > 0 ? `?authuser=${currentAuthuser}` : '';
 
     return {
-      url: `https://notebooklm.google.com/notebook/${targetNotebookId}${authParam}`
+      url: `https://notebook.google.com/notebook/${targetNotebookId}${authParam}`
     };
   } catch (error) {
     return { err: error.message };

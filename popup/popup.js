@@ -479,7 +479,7 @@ function extractYouTubeUrls(pageType) {
 
 // Show success message with action buttons
 function showSuccessWithActions(notebook, videoCount = null, commentCount = null, videoTitle = null, totalComments = 0) {
-  const notebookUrl = `https://notebooklm.google.com/notebook/${notebook.id}`;
+  const notebookUrl = `https://notebook.google.com/notebook/${notebook.id}`;
   const addedToText = t('popup_addedTo', 'Added to');
   const openNotebookText = t('popup_openNotebook', 'Open Notebook');
 
@@ -617,7 +617,7 @@ async function handleNotebookChange() {
 function handleOpenNotebook() {
   const notebookId = notebookSelect.value;
   if (notebookId) {
-    const notebookUrl = `https://notebooklm.google.com/notebook/${notebookId}`;
+    const notebookUrl = `https://notebook.google.com/notebook/${notebookId}`;
     chrome.tabs.create({ url: notebookUrl });
   }
 }

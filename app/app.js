@@ -463,7 +463,7 @@ async function importUrls(notebookId, urls) {
     hideProgress();
 
     const notebook = notebooks.find(n => n.id === notebookId);
-    const notebookUrl = `https://notebooklm.google.com/notebook/${notebookId}`;
+    const notebookUrl = `https://notebook.google.com/notebook/${notebookId}`;
     const openText = I18n ? I18n.get('bulk_openNotebook') : 'Open notebook';
 
     if (failed === 0) {
@@ -583,7 +583,7 @@ async function loadSettings() {
     const openBtn = document.getElementById('open-notebooklm-btn');
     if (openBtn) {
       openBtn.addEventListener('click', () => {
-        chrome.tabs.create({ url: 'https://notebooklm.google.com' });
+        chrome.tabs.create({ url: 'https://notebook.google.com' });
       });
     }
 

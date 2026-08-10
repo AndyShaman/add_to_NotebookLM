@@ -16,6 +16,7 @@
   ],
 
   "host_permissions": [
+    "https://notebook.google.com/*",
     "https://notebooklm.google.com/*",
     "https://www.youtube.com/*",
     "https://accounts.google.com/*"
@@ -49,7 +50,7 @@
 
   "content_scripts": [
     {
-      "matches": ["https://notebooklm.google.com/*"],
+      "matches": ["https://notebook.google.com/*", "https://notebooklm.google.com/*"],
       "js": ["content/notebooklm.js"],
       "run_at": "document_idle",
       "all_frames": false
@@ -59,7 +60,7 @@
   "web_accessible_resources": [
     {
       "resources": ["icons/*"],
-      "matches": ["https://notebooklm.google.com/*", "https://www.youtube.com/*"]
+      "matches": ["https://notebook.google.com/*", "https://notebooklm.google.com/*", "https://www.youtube.com/*"]
     }
   ]
 }
