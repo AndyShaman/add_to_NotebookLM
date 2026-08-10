@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — Add to NotebookLM</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; line-height: 1.6;
+         color: #1f2328; background: #ffffff; }
+  h1 { font-size: 1.6em; } h2 { font-size: 1.2em; margin-top: 1.8em; }
+  code { background: #f2f4f7; padding: 1px 5px; border-radius: 4px; }
+  @media (prefers-color-scheme: dark) {
+    body { color: #e6e6e6; background: #16181c; }
+    code { background: #26292f; }
+  }
+</style>
+</head>
+<body>
+<h1>Privacy Policy — “Add to NotebookLM” Chrome Extension</h1>
+<p><em>Effective date: August 10, 2026</em></p>
+
+<p>“Add to NotebookLM” (the “Extension”) helps you add web pages, YouTube videos and
+YouTube comments as sources to your own Google Notebook (Gemini Notebook / NotebookLM)
+account. The Extension is free, open source
+(<a href="https://github.com/AndyShaman/add_to_NotebookLM">source code</a>), contains no
+advertising, no analytics and no telemetry.</p>
+
+<h2>Summary</h2>
+<ul>
+  <li>The Extension does not operate any servers. Your data is processed locally in your
+      browser and is transmitted to exactly one destination: <strong>Google's own services
+      within your own Google account</strong> (notebook.google.com), and only when you
+      explicitly trigger an action.</li>
+  <li>The developer receives nothing: no browsing data, no personal data, no usage
+      statistics.</li>
+  <li>Nothing is sold or shared with third parties. Ever.</li>
+</ul>
+
+<h2>What data the Extension processes and why</h2>
+<ul>
+  <li><strong>Google account emails.</strong> To support multiple signed-in Google accounts,
+      the Extension reads the list of accounts signed in to your browser (via Google's
+      <code>ListAccounts</code> endpoint) and shows their email addresses in the account
+      selector. The selected account's email is stored in your browser's extension storage
+      so your choice is remembered. Emails are never transmitted anywhere else.</li>
+  <li><strong>Titles and URLs of open tabs.</strong> Shown in the Extension's own UI when
+      you use bulk tab import, so you can choose which tabs to add. Only the URLs of tabs
+      you select are sent — to your Google Notebook.</li>
+  <li><strong>Page content as PDF.</strong> When you explicitly click “Add as PDF”, the
+      Extension captures the current page as a PDF using Chrome's debugger API
+      (<code>Page.printToPDF</code> only, attached for the duration of the capture and
+      detached immediately) and uploads the PDF to your Google Notebook. Chrome displays
+      a notice while the debugger is attached. No other debugging capability is used.</li>
+  <li><strong>YouTube comments and video metadata.</strong> When you explicitly run comment
+      import on a YouTube video, comments are fetched, formatted locally and added as text
+      sources to your Google Notebook.</li>
+  <li><strong>Settings.</strong> Language, theme, selected account and similar preferences
+      are kept in Chrome extension storage (locally, optionally synced by Chrome to your
+      own browser profile).</li>
+</ul>
+
+<h2>Authentication</h2>
+<p>The Extension does not collect, read or store your passwords, cookies or tokens.
+Requests to Google services are performed by your browser with the session cookies your
+browser already holds, the same way the Google Notebook web page itself works. Short-lived
+anti-CSRF request tokens provided by the Google Notebook page are used in memory to perform
+the actions you request and are not persisted.</p>
+
+<h2>Data sharing</h2>
+<p>The only recipient of any data is Google LLC — specifically, your own Google Notebook
+(notebook.google.com) and YouTube (www.youtube.com) — acting on your explicit request.
+Google's handling of that data is governed by
+<a href="https://policies.google.com/privacy">Google's Privacy Policy</a>.
+There are no other recipients. The developer does not sell or transfer user data to third
+parties; does not use user data for purposes unrelated to the Extension's single purpose
+(managing sources in your Google Notebook); and does not use user data to determine
+creditworthiness or for lending purposes.</p>
+
+<h2>Data retention</h2>
+<p>The Extension retains only local settings in Chrome extension storage. They are removed
+when you uninstall the Extension. The Extension keeps no copies of pages, PDFs or comments
+after they are handed to your Google Notebook.</p>
+
+<h2>Security</h2>
+<p>All network requests go directly from your browser to Google over HTTPS.</p>
+
+<h2>Limited Use disclosure</h2>
+<p>The use of information received from Google APIs will adhere to the
+<a href="https://developer.chrome.com/docs/webstore/program-policies/user-data-faq">Chrome
+Web Store User Data Policy</a>, including the Limited Use requirements.</p>
+
+<h2>Changes</h2>
+<p>Changes to this policy will be published on this page with an updated effective date.</p>
+
+<h2>Contact</h2>
+<p>Questions: <a href="https://github.com/AndyShaman/add_to_NotebookLM/issues">GitHub issues</a>
+or e-mail <a href="mailto:ai3059917@gmail.com">ai3059917@gmail.com</a>.</p>
+
+<hr>
+<p><small>NotebookLM and Gemini are trademarks of Google LLC. This extension is an
+independent project and is not affiliated with, endorsed or sponsored by Google.</small></p>
+</body>
+</html>
