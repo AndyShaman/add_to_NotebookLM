@@ -394,5 +394,57 @@
   "settings_syncDriveHint": {
     "message": "Shows a sync button to refresh Google Docs and Sheets sources in NotebookLM",
     "description": "Drive sync setting hint"
+  },
+  "about_trademark": {
+    "message": "NotebookLM is a trademark of Google LLC. This extension is not affiliated with Google.",
+    "description": "Trademark disclaimer"
+  },
+  "onboarding_subtitle": {
+    "message": "Thanks for installing! Here is what the extension can do.",
+    "description": "Onboarding page subtitle"
+  },
+  "onboarding_whatItDoes": {
+    "message": "What it does",
+    "description": "Onboarding features section title"
+  },
+  "onboarding_feature1": {
+    "message": "Add any page or YouTube video to Gemini Notebook (NotebookLM) in one click.",
+    "description": "Onboarding feature: one-click add"
+  },
+  "onboarding_feature2": {
+    "message": "Bulk import of links, browser tabs, playlists and entire channels.",
+    "description": "Onboarding feature: bulk import"
+  },
+  "onboarding_feature3": {
+    "message": "Import YouTube comments for audience analysis.",
+    "description": "Onboarding feature: comments import"
+  },
+  "onboarding_feature4": {
+    "message": "Bulk delete sources in a notebook.",
+    "description": "Onboarding feature: bulk delete"
+  },
+  "onboarding_quickStartTitle": {
+    "message": "Quick start",
+    "description": "Onboarding quick start section title"
+  },
+  "onboarding_quickStart": {
+    "message": "Pin the extension to the toolbar, open any page and click the icon.",
+    "description": "Onboarding quick start instructions"
+  },
+  "onboarding_channelsTitle": {
+    "message": "Author's channels",
+    "description": "Onboarding author channels section title"
+  },
+  "onboarding_telegram": {
+    "message": "Author's channel",
+    "description": "Onboarding Telegram button label"
+  },
+  "onboarding_youtube": {
+    "message": "YouTube channel",
+    "description": "Onboarding YouTube button label"
+  },
+  "onboarding_github": {
+    "message": "Source code on GitHub",
+    "description": "Onboarding GitHub link label"
   }
 }

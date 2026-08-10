@@ -588,6 +588,12 @@ async function loadSettings() {
       });
     }
 
+    // Show extension version in the About section
+    const versionEl = document.getElementById('about-version');
+    if (versionEl) {
+      versionEl.textContent = `v${chrome.runtime.getManifest().version}`;
+    }
+
     // Load saved settings
     const storage = await chrome.storage.sync.get(['autoOpenNotebook', 'enableBulkDelete', 'language', 'theme']);
 

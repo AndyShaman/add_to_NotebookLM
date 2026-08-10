@@ -603,6 +603,9 @@ chrome.runtime.onInstalled.addListener((details) => {
       lastNotebook: null,
       autoOpenNotebook: false
     });
+
+    // Show onboarding page on first install only
+    chrome.tabs.create({ url: chrome.runtime.getURL('app/onboarding.html') });
   }
 
   // Clean up old API key setting (no longer needed)

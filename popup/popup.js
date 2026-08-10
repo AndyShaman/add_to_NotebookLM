@@ -107,7 +107,9 @@ function detectYouTubePageType(url) {
   youtubePageType = null;
   youtubeVideoUrls = [];
 
-  if (!url.includes('youtube.com')) {
+  // Only www.youtube.com is covered by host_permissions — other subdomains
+  // (music, m) would fail on chrome.scripting.executeScript
+  if (!url.includes('www.youtube.com')) {
     return;
   }
 
@@ -277,7 +279,7 @@ async function loadNotebooks() {
     // Hide PDF button for restricted pages
     if (currentTab && currentTab.url) {
       const url = currentTab.url;
-      if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('about:') || url.includes('youtube.com') || url.includes('youtu.be')) {
+      if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('about:') || url.includes('www.youtube.com') || url.includes('youtu.be')) {
         addPdfBtn.classList.add('hidden');
       }
     }
@@ -571,7 +573,7 @@ async function handleCreateNotebook() {
     modalCreate.textContent = creatingText;
 
     // Determine emoji based on URL
-    const isYouTube = currentTab?.url?.includes('youtube.com');
+    const isYouTube = currentTab?.url?.includes('www.youtube.com');
     const emoji = isYouTube ? '📺' : '📔';
 
     // Create notebook

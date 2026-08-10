@@ -394,5 +394,57 @@
   "settings_syncDriveHint": {
     "message": "Показывает кнопку синхронизации для обновления источников Google Документов и Таблиц в NotebookLM",
     "description": "Подсказка настройки синхронизации Drive"
+  },
+  "about_trademark": {
+    "message": "NotebookLM — товарный знак Google LLC. Расширение не аффилировано с Google.",
+    "description": "Уведомление о товарном знаке"
+  },
+  "onboarding_subtitle": {
+    "message": "Спасибо за установку! Вот что умеет расширение.",
+    "description": "Подзаголовок страницы приветствия"
+  },
+  "onboarding_whatItDoes": {
+    "message": "Возможности",
+    "description": "Заголовок блока возможностей"
+  },
+  "onboarding_feature1": {
+    "message": "Добавляйте любую страницу или видео с YouTube в Gemini Notebook (NotebookLM) в один клик.",
+    "description": "Возможность: добавление в один клик"
+  },
+  "onboarding_feature2": {
+    "message": "Массовый импорт ссылок, вкладок браузера, плейлистов и целых каналов.",
+    "description": "Возможность: массовый импорт"
+  },
+  "onboarding_feature3": {
+    "message": "Импорт комментариев с YouTube для анализа аудитории.",
+    "description": "Возможность: импорт комментариев"
+  },
+  "onboarding_feature4": {
+    "message": "Массовое удаление источников в блокноте.",
+    "description": "Возможность: массовое удаление"
+  },
+  "onboarding_quickStartTitle": {
+    "message": "Быстрый старт",
+    "description": "Заголовок блока быстрого старта"
+  },
+  "onboarding_quickStart": {
+    "message": "Закрепите расширение на панели, откройте любую страницу и нажмите на иконку.",
+    "description": "Инструкция быстрого старта"
+  },
+  "onboarding_channelsTitle": {
+    "message": "Каналы автора",
+    "description": "Заголовок блока каналов автора"
+  },
+  "onboarding_telegram": {
+    "message": "Канал автора",
+    "description": "Подпись кнопки Telegram"
+  },
+  "onboarding_youtube": {
+    "message": "YouTube-канал",
+    "description": "Подпись кнопки YouTube"
+  },
+  "onboarding_github": {
+    "message": "Исходный код на GitHub",
+    "description": "Подпись ссылки на GitHub"
   }
 }
