@@ -63,6 +63,10 @@
     "message": "Failed to add. Please try again.",
     "description": "Error message"
   },
+  "popup_createdAddFailed": {
+    "message": "Notebook created, but adding the page failed",
+    "description": "Partial result: notebook created but source not added"
+  },
   "popup_loginRequired": {
     "message": "Please login to NotebookLM first",
     "description": "Login required message"
@@ -346,6 +350,10 @@
   "comments_networkError": {
     "message": "Network error. Check your connection.",
     "description": "Network error message"
+  },
+  "comments_interrupted": {
+    "message": "Parsing was interrupted. Please try again.",
+    "description": "Parsing interrupted by service worker restart"
   },
   "comments_videoNotFound": {
     "message": "Video not found",

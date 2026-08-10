@@ -221,11 +221,16 @@
         alert(reloadMsg);
         resetButton();
       } else {
-        // Show success
-        const successCount = response.successCount || selectedSources.length;
-        const successMsg = lang.startsWith('ru')
-          ? `✓ Удалено: ${successCount}`
-          : `✓ Deleted: ${successCount}`;
+        // Show result — some batches may have failed while others went through
+        const successCount = response.successCount ?? 0;
+        const failCount = response.failCount || 0;
+        const successMsg = failCount > 0
+          ? (lang.startsWith('ru')
+            ? `✓ Удалено: ${successCount}, не удалось: ${failCount}`
+            : `✓ Deleted: ${successCount}, failed: ${failCount}`)
+          : (lang.startsWith('ru')
+            ? `✓ Удалено: ${successCount}`
+            : `✓ Deleted: ${successCount}`);
 
         deleteButton.innerHTML = successMsg;
 

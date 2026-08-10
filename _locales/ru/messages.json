@@ -63,6 +63,10 @@
     "message": "Не удалось добавить. Попробуйте ещё раз.",
     "description": "Сообщение об ошибке"
   },
+  "popup_createdAddFailed": {
+    "message": "Ноутбук создан, но страницу добавить не удалось",
+    "description": "Частичный результат: ноутбук создан, источник не добавлен"
+  },
   "popup_loginRequired": {
     "message": "Сначала войдите в NotebookLM",
     "description": "Сообщение о необходимости входа"
@@ -346,6 +350,10 @@
   "comments_networkError": {
     "message": "Ошибка сети. Проверьте подключение.",
     "description": "Сообщение об ошибке сети"
+  },
+  "comments_interrupted": {
+    "message": "Парсинг был прерван. Попробуйте ещё раз.",
+    "description": "Парсинг прерван перезапуском service worker"
   },
   "comments_videoNotFound": {
     "message": "Видео не найдено",

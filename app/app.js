@@ -15,6 +15,7 @@ let themeToggle;
 
 // State
 let notebooks = [];
+let accounts = [];
 let allTabs = [];
 let selectedTabs = new Set();
 let currentTab = 'links';
@@ -588,7 +589,7 @@ async function loadSettings() {
     }
 
     // Load saved settings
-    const storage = await chrome.storage.sync.get(['selectedAccount', 'autoOpenNotebook', 'enableBulkDelete', 'language', 'theme']);
+    const storage = await chrome.storage.sync.get(['autoOpenNotebook', 'enableBulkDelete', 'language', 'theme']);
 
     // Initialize theme toggle state
     if (themeToggle) {
@@ -604,7 +605,8 @@ async function loadSettings() {
 
     // Load accounts
     const response = await sendMessage({ cmd: 'list-accounts' });
-    const accounts = response.accounts || [];
+    accounts = response.accounts || [];
+    const selectedAccount = await resolveSelectedAccount(accounts);
 
     // Populate account selector
     if (settingsAccountSelect) {
@@ -615,7 +617,7 @@ async function loadSettings() {
           const option = document.createElement('option');
           option.value = acc.index !== undefined ? acc.index : index;
           option.textContent = acc.email || acc.name || `Account ${index + 1}`;
-          if ((acc.index !== undefined ? acc.index : index) === (storage.selectedAccount || 0)) {
+          if ((acc.index !== undefined ? acc.index : index) === selectedAccount) {
             option.selected = true;
           }
           settingsAccountSelect.appendChild(option);
@@ -679,10 +681,48 @@ async function handleLanguageChange() {
   }
 }
 
+// Reconcile the saved account index with the current account list.
+// Indexes saved before the authuser fix came from a filtered list, so they can
+// point at a different account now — the email is the source of truth.
+async function resolveSelectedAccount(accountList) {
+  const storage = await chrome.storage.sync.get(['selectedAccount', 'selectedAccountEmail']);
+  const savedIndex = storage.selectedAccount || 0;
+  const savedEmail = storage.selectedAccountEmail;
+
+  if (accountList.length === 0) return savedIndex;
+
+  if (savedEmail) {
+    const byEmail = accountList.find(acc => acc.email === savedEmail);
+    if (byEmail) {
+      if (byEmail.index !== savedIndex) {
+        await chrome.storage.sync.set({ selectedAccount: byEmail.index });
+      }
+      return byEmail.index;
+    }
+  } else {
+    // Legacy value with no email recorded: trust it only if that index exists
+    const byIndex = accountList.find(acc => acc.index === savedIndex);
+    if (byIndex) {
+      await chrome.storage.sync.set({ selectedAccountEmail: byIndex.email });
+      return byIndex.index;
+    }
+  }
+
+  // Saved account is gone (or the index never existed) — fall back to the default one
+  const fallback = accountList.find(acc => acc.index === 0) || accountList[0];
+  await chrome.storage.sync.set({ selectedAccount: fallback.index, selectedAccountEmail: fallback.email });
+  return fallback.index;
+}
+
 // Handle settings account change
 async function handleSettingsAccountChange() {
   const account = parseInt(settingsAccountSelect.value);
-  await chrome.storage.sync.set({ selectedAccount: account });
+  // Store the email alongside the index so a shifted index can be repaired later
+  const selected = accounts.find(acc => acc.index === account);
+  await chrome.storage.sync.set({
+    selectedAccount: account,
+    selectedAccountEmail: selected ? selected.email : null
+  });
 
   // Reload notebooks with new account
   await loadNotebooks();

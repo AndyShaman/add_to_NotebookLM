@@ -24,6 +24,7 @@ let parseCommentsBtn, parseProgress, parseProgressText, cancelParseBtn;
 // Current state
 let currentTab = null;
 let notebooks = [];
+let accounts = [];
 let youtubePageType = null; // 'video', 'playlist', 'channel', or null
 let youtubeVideoUrls = []; // For playlists/channels
 
@@ -152,15 +153,47 @@ function detectYouTubePageType(url) {
   }
 }
 
+// Reconcile the saved account index with the current account list.
+// Indexes saved before the authuser fix came from a filtered list, so they can
+// point at a different account now — the email is the source of truth.
+async function resolveSelectedAccount(accountList) {
+  const storage = await chrome.storage.sync.get(['selectedAccount', 'selectedAccountEmail']);
+  const savedIndex = storage.selectedAccount || 0;
+  const savedEmail = storage.selectedAccountEmail;
+
+  if (accountList.length === 0) return savedIndex;
+
+  if (savedEmail) {
+    const byEmail = accountList.find(acc => acc.email === savedEmail);
+    if (byEmail) {
+      if (byEmail.index !== savedIndex) {
+        await chrome.storage.sync.set({ selectedAccount: byEmail.index });
+      }
+      return byEmail.index;
+    }
+  } else {
+    // Legacy value with no email recorded: trust it only if that index exists
+    const byIndex = accountList.find(acc => acc.index === savedIndex);
+    if (byIndex) {
+      await chrome.storage.sync.set({ selectedAccountEmail: byIndex.email });
+      return byIndex.index;
+    }
+  }
+
+  // Saved account is gone (or the index never existed) — fall back to the default one
+  const fallback = accountList.find(acc => acc.index === 0) || accountList[0];
+  await chrome.storage.sync.set({ selectedAccount: fallback.index, selectedAccountEmail: fallback.email });
+  return fallback.index;
+}
+
 // Load Google accounts
 async function loadAccounts() {
   try {
     const response = await sendMessage({ cmd: 'list-accounts' });
-    const accounts = response.accounts || [];
+    accounts = response.accounts || [];
 
     // Get saved account
-    const storage = await chrome.storage.sync.get(['selectedAccount']);
-    const selectedAccount = storage.selectedAccount || 0;
+    const selectedAccount = await resolveSelectedAccount(accounts);
 
     // Populate account selector
     accountSelect.textContent = '';
@@ -556,26 +589,35 @@ async function handleCreateNotebook() {
     const notebook = createResponse.notebook;
 
     // Add current page to new notebook
+    let addFailed = false;
     if (currentTab?.url) {
-      await sendMessage({
+      const addResponse = await sendMessage({
         cmd: 'add-source',
         notebookId: notebook.id,
         url: currentTab.url
       });
+      addFailed = !!addResponse?.error;
     }
 
     // Save as last notebook
     await chrome.storage.sync.set({ lastNotebook: notebook.id });
 
     hideNewNotebookModal();
-    const successText = t('popup_success', 'Created and added!');
-    showStatus('success', `✓ ${successText}`);
 
     // Reload notebooks
     await loadNotebooks();
 
     // Select new notebook
     notebookSelect.value = notebook.id;
+
+    // Status last: loadNotebooks() starts with its own 'loading' status
+    if (addFailed) {
+      // The notebook exists, only the source failed — report the partial result
+      showStatus('error', t('popup_createdAddFailed', 'Notebook created, but adding the page failed'));
+    } else {
+      const successText = t('popup_success', 'Created and added!');
+      showStatus('success', `✓ ${successText}`);
+    }
 
   } catch (error) {
     const errorText = t('popup_error', 'Failed to create notebook');
@@ -590,7 +632,12 @@ async function handleCreateNotebook() {
 // Handle account change
 async function handleAccountChange() {
   const account = parseInt(accountSelect.value);
-  await chrome.storage.sync.set({ selectedAccount: account });
+  // Store the email alongside the index so a shifted index can be repaired later
+  const selected = accounts.find(acc => acc.index === account);
+  await chrome.storage.sync.set({
+    selectedAccount: account,
+    selectedAccountEmail: selected ? selected.email : null
+  });
 
   // Reload notebooks with new account
   await loadNotebooks();
@@ -786,7 +833,8 @@ function mapParseError(code, message) {
     COMMENTS_DISABLED: t('comments_commentsDisabled', 'Comments are disabled for this video'),
     VIDEO_NOT_FOUND: t('comments_videoNotFound', 'Video not found'),
     INVALID_REQUEST: t('comments_invalidRequest', 'Invalid request'),
-    NETWORK_ERROR: t('comments_networkError', 'Network error. Check your connection.')
+    NETWORK_ERROR: t('comments_networkError', 'Network error. Check your connection.'),
+    INTERRUPTED: t('comments_interrupted', 'Parsing was interrupted. Please try again.')
   };
   return map[code] || message || t('popup_error', 'Error');
 }
@@ -808,6 +856,9 @@ async function checkActiveParse() {
       parseCommentsBtn.classList.add('hidden');
       parseProgress.classList.remove('hidden');
       startProgressPolling();
+      updateParseUI(status);
+    } else if (status.error?.code === 'INTERRUPTED') {
+      // Job died with the service worker while the popup was closed
       updateParseUI(status);
     }
   } catch (e) {

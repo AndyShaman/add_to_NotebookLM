@@ -224,7 +224,13 @@ const NotebookLMAPI = {
 
   // Check notebook status (sources loading)
   async getNotebookStatus(notebookId) {
-    const response = await this.rpc('rLM1Ne', [notebookId, null, [2]], `/notebook/${notebookId}`);
+    let response;
+    try {
+      response = await this.rpc('rLM1Ne', [notebookId, null, [2]], `/notebook/${notebookId}`);
+    } catch (e) {
+      // Polling only: a failed status call means "not ready yet", not a failed add
+      return false;
+    }
     // Check if notebook ID appears in response (means sources are loaded)
     return !response.includes(`null,\\"${notebookId}`);
   },
@@ -276,7 +282,65 @@ const NotebookLMAPI = {
       throw new Error(`RPC call failed: ${response.status}`);
     }
 
-    return await response.text();
+    const text = await response.text();
+
+    // batchexecute answers HTTP 200 even when the RPC itself failed
+    const rpcError = this.findRpcError(rpcId, text);
+    if (rpcError) {
+      throw new Error(rpcError);
+    }
+
+    return text;
+  },
+
+  // Inspect a batchexecute response for application-level errors.
+  // Returns an error message, or null when the response looks valid.
+  // Never throws: an unexpected shape degrades to "no error" rather than a false alarm.
+  findRpcError(rpcId, text) {
+    try {
+      let errorFrame = null;
+      let responseFrame = null;
+
+      for (const line of text.split('\n')) {
+        if (!line.startsWith('[[')) continue;
+
+        let frames;
+        try {
+          frames = JSON.parse(line);
+        } catch (e) {
+          continue;
+        }
+
+        const first = frames[0];
+        if (!Array.isArray(first)) continue;
+
+        // "er" frames are the batchexecute error marker
+        if (typeof first[0] === 'string' && first[0].startsWith('er')) {
+          errorFrame = line.trim();
+        }
+
+        const match = frames.find(f => Array.isArray(f) && f[0] === 'wrb.fr' && f[1] === rpcId);
+        if (match) responseFrame = match;
+      }
+
+      // An "er" frame means the call failed, whatever else came back
+      if (errorFrame) {
+        return `RPC ${rpcId} failed: error frame (${errorFrame})`;
+      }
+
+      if (!responseFrame) {
+        return `RPC ${rpcId} failed: no response frame`;
+      }
+
+      const payload = responseFrame[2];
+      if (payload === null || payload === undefined) {
+        return `RPC ${rpcId} failed: empty payload`;
+      }
+
+      return null;
+    } catch (e) {
+      return null;
+    }
   },
 
   // Get list of Google accounts (filter out YouTube channels/profiles)
@@ -304,15 +368,18 @@ const NotebookLMAPI = {
 
       // Filter: only keep entries with valid email addresses (real Google accounts)
       // YouTube channels/profiles don't have email in acc[3]
+      // authuser numbering follows the original ListAccounts order, so the index
+      // must be captured BEFORE filtering — otherwise emails map to a foreign authuser
       return accounts
-        .filter(acc => acc[3] && acc[3].includes('@'))
-        .map((acc, idx) => ({
+        .map((acc, originalIndex) => ({ acc, originalIndex }))
+        .filter(({ acc }) => acc[3] && acc[3].includes('@'))
+        .map(({ acc, originalIndex }) => ({
           name: acc[2] || null,
           email: acc[3] || null,
           avatar: acc[4] || null,
           isActive: acc[5] || false,
           isDefault: acc[6] || false,
-          index: idx  // Use filtered index for authuser param
+          index: originalIndex
         }));
     } catch (error) {
       console.error('listAccounts error:', error);
@@ -431,24 +498,30 @@ const NotebookLMAPI = {
   // API supports max ~20 sources per request, so we chunk into batches
   async deleteSources(notebookId, sourceIds) {
     if (sourceIds.length === 0) {
-      return { success: true, deletedCount: 0 };
+      return { success: true, deletedCount: 0, failedCount: 0 };
     }
 
     const BATCH_SIZE = 20;
     let deletedCount = 0;
+    let failedCount = 0;
 
     // Split into chunks of BATCH_SIZE
+    // A failing batch must not abort the rest — report a partial result instead
     for (let i = 0; i < sourceIds.length; i += BATCH_SIZE) {
       const batch = sourceIds.slice(i, i + BATCH_SIZE);
 
       // Batch delete: payload format is [[[id1], [id2], [id3]...]]
       const batchPayload = [batch.map(id => [id])];
-      await this.rpc('tGMBJ', batchPayload, `/notebook/${notebookId}`);
-
-      deletedCount += batch.length;
+      try {
+        await this.rpc('tGMBJ', batchPayload, `/notebook/${notebookId}`);
+        deletedCount += batch.length;
+      } catch (e) {
+        console.error('deleteSources batch failed:', e);
+        failedCount += batch.length;
+      }
     }
 
-    return { success: true, deletedCount };
+    return { success: failedCount === 0, deletedCount, failedCount };
   }
 };
 
@@ -490,6 +563,36 @@ let parseState = {
   error: null,
   result: null
 };
+
+// Mirror of parseState in storage.session (cancelToken is not serializable).
+// Survives a service worker restart, so an interrupted job can be reported
+// instead of leaving the UI polling forever.
+const PARSE_STATE_KEY = 'parseState';
+
+async function persistParseState() {
+  try {
+    await chrome.storage.session.set({
+      [PARSE_STATE_KEY]: {
+        active: parseState.active,
+        videoId: parseState.videoId,
+        progress: parseState.progress,
+        error: parseState.error,
+        result: parseState.result
+      }
+    });
+  } catch (e) {
+    // storage.session unavailable — keepalive stays the primary protection
+  }
+}
+
+async function readPersistedParseState() {
+  try {
+    const stored = await chrome.storage.session.get(PARSE_STATE_KEY);
+    return stored[PARSE_STATE_KEY] || null;
+  } catch (e) {
+    return null;
+  }
+}
 
 // Initialize on install
 chrome.runtime.onInstalled.addListener((details) => {
@@ -602,7 +705,32 @@ async function handleMessage(request, sender) {
     case 'delete-sources':
       return await deleteSources(params.notebookId, params.sourceIds);
 
-    case 'get-parse-status':
+    case 'get-parse-status': {
+      // Fresh in-memory state + a mirror marked active = the worker died mid-job
+      if (!parseState.active && parseState.videoId === null) {
+        const stored = await readPersistedParseState();
+        if (stored && stored.active) {
+          const interrupted = {
+            active: false,
+            videoId: stored.videoId,
+            progress: { ...stored.progress, phase: 'error' },
+            error: { code: 'INTERRUPTED', message: 'Parsing was interrupted (service worker restarted)' },
+            result: stored.result || null
+          };
+          // Adopt it in memory too, so later polls in this worker don't re-read
+          // the stale mirror even if the write below fails
+          parseState = { ...interrupted, cancelToken: null };
+
+          // Overwrite the mirror so the interruption is reported exactly once
+          try {
+            await chrome.storage.session.set({ [PARSE_STATE_KEY]: interrupted });
+          } catch (e) {
+            // ignore
+          }
+          return interrupted;
+        }
+      }
+
       return {
         active: parseState.active,
         videoId: parseState.videoId,
@@ -610,12 +738,15 @@ async function handleMessage(request, sender) {
         error: parseState.error,
         result: parseState.result
       };
+    }
 
     case 'cancel-parse':
       if (parseState.cancelToken) {
         parseState.cancelToken.cancelled = true;
         parseState.progress.phase = 'cancelled';
         parseState.active = false;
+        // Mirror right away: a worker death after cancelling must not look interrupted
+        await persistParseState();
       }
       return { success: true };
 
@@ -751,11 +882,16 @@ async function deleteSource(notebookId, sourceId) {
 async function deleteSources(notebookId, sourceIds) {
   try {
     const result = await NotebookLMAPI.deleteSources(notebookId, sourceIds);
-    return {
-      success: true,
-      successCount: result.deletedCount || sourceIds.length,
-      failCount: 0
+    const response = {
+      success: result.success,
+      successCount: result.deletedCount,
+      failCount: result.failedCount
     };
+    // Nothing deleted at all: report as an error, callers only surface `error`
+    if (result.failedCount > 0 && result.deletedCount === 0) {
+      response.error = `Failed to delete ${result.failedCount} source(s)`;
+    }
+    return response;
   } catch (error) {
     return { error: error.message };
   }
@@ -922,12 +1058,19 @@ async function doParseComments(notebookId, videoId, tabId) {
     error: null,
     result: null
   };
+  await persistParseState();
+
+  // Keep the service worker alive for the whole job: extension API calls reset
+  // the 30s idle timer, and with the popup closed there is no other traffic
+  const keepaliveId = setInterval(() => chrome.runtime.getPlatformInfo(() => {}), 20000);
+  let persistedFetched = 0;
 
   try {
     // Phase 1: Fetch metadata from DOM (no API key needed)
     // Pass videoId as fallback in case DOM extraction fails
     const metadata = await YouTubeCommentsAPI.getVideoMetadataFromDOM(tabId, videoId);
     parseState.progress.total = metadata.commentCount;
+    await persistParseState();
 
     if (cancelToken.cancelled) return;
 
@@ -946,6 +1089,11 @@ async function doParseComments(notebookId, videoId, tabId) {
         if (phase === 'fetching_replies') {
           parseState.progress.phase = 'fetching_replies';
         }
+        // Throttled mirror: one write per 100 comments, not per page
+        if (fetched - persistedFetched >= 100) {
+          persistedFetched = fetched;
+          persistParseState();
+        }
       },
       cancelToken,
       tabId,
@@ -958,6 +1106,7 @@ async function doParseComments(notebookId, videoId, tabId) {
 
     // Phase 3: Format to MD
     parseState.progress.phase = 'formatting';
+    await persistParseState();
     const storage = await chrome.storage.sync.get(['language']);
     const lang = storage.language || 'en';
     const parts = CommentsToMd.format(metadata, comments, { lang });
@@ -966,6 +1115,7 @@ async function doParseComments(notebookId, videoId, tabId) {
 
     // Phase 4: Send to NotebookLM
     parseState.progress.phase = 'sending';
+    await persistParseState();
     // Refresh tokens before sending (parsing may have taken minutes)
     await NotebookLMAPI.getTokens(currentAuthuser);
     for (let i = 0; i < parts.length; i++) {
@@ -986,7 +1136,9 @@ async function doParseComments(notebookId, videoId, tabId) {
     parseState.progress.phase = 'error';
     parseState.error = { code: e.code || 'UNKNOWN', message: e.message };
   } finally {
+    clearInterval(keepaliveId);
     parseState.active = false;
+    await persistParseState();
   }
 }
 
