@@ -33,13 +33,21 @@ const NotebookLMAPI = {
         ? `${this.BASE_URL}/?authuser=${authuser}&pageId=none`
         : this.BASE_URL;
 
+      // Follow redirects: notebook.google.com answers with a passive SSO bounce
+      // (login?continue=... and back) when the session cookie needs refreshing.
+      // With redirect:'manual' the chain breaks into an opaque empty response.
       const response = await fetchWithTimeout(url, {
         credentials: 'include',
-        redirect: 'manual'
+        redirect: 'follow'
       });
 
-      if (!response.ok && response.type !== 'opaqueredirect') {
+      if (!response.ok) {
         throw new Error('Failed to fetch NotebookLM page');
+      }
+
+      // Landing on the sign-in flow means the user really is not logged in
+      if (response.url.includes('accounts.google.com') || response.url.includes('/login')) {
+        throw new Error('Not authorized. Please login to NotebookLM first.');
       }
 
       const html = await response.text();
