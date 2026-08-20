@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', init);
 let notebookSelect, newNotebookBtn;
 let linksPanel, tabsPanel, settingsPanel;
 let linksInput, linkCount, importLinksBtn;
+let rssUrlInput, rssFetchBtn;
 let tabsContainer, tabsCount, importTabsBtn, selectAllTabs;
 let progressContainer, progressFill, progressText;
 let statusDiv;
@@ -38,6 +39,8 @@ async function init() {
   linksInput = document.getElementById('links-input');
   linkCount = document.getElementById('link-count');
   importLinksBtn = document.getElementById('import-links-btn');
+  rssUrlInput = document.getElementById('rss-url-input');
+  rssFetchBtn = document.getElementById('rss-fetch-btn');
   tabsContainer = document.getElementById('tabs-container');
   tabsCount = document.getElementById('tabs-count');
   importTabsBtn = document.getElementById('import-tabs-btn');
@@ -64,6 +67,7 @@ async function init() {
   newNotebookBtn.addEventListener('click', handleNewNotebook);
   linksInput.addEventListener('input', updateLinkCount);
   importLinksBtn.addEventListener('click', handleImportLinks);
+  rssFetchBtn.addEventListener('click', handleRssFetch);
   importTabsBtn.addEventListener('click', handleImportTabs);
   selectAllTabs.addEventListener('change', handleSelectAllTabs);
   notebookSelect.addEventListener('change', updateImportButtons);
@@ -108,11 +112,19 @@ async function init() {
   }
 
   // Check for pending URL from context menu
-  const storage = await chrome.storage.local.get(['pendingUrl', 'pendingTitle']);
+  const storage = await chrome.storage.local.get(['pendingUrl', 'pendingTitle', 'pendingLinks']);
   if (storage.pendingUrl) {
     linksInput.value = storage.pendingUrl;
     updateLinkCount();
     chrome.storage.local.remove(['pendingUrl', 'pendingTitle']);
+  }
+
+  // Check for links grabbed from a page via the popup
+  if (storage.pendingLinks && storage.pendingLinks.length > 0) {
+    const grabbed = storage.pendingLinks.join('\n');
+    linksInput.value = linksInput.value ? `${linksInput.value}\n${grabbed}` : grabbed;
+    updateLinkCount();
+    chrome.storage.local.remove(['pendingLinks']);
   }
 
   // Load data
@@ -344,6 +356,110 @@ function parseLinks(text) {
   }
 
   return [...new Set(links)]; // Remove duplicates
+}
+
+// Load links from an RSS/Atom feed into the links textarea
+async function handleRssFetch() {
+  const feedUrl = rssUrlInput.value.trim();
+  const invalidUrlText = I18n ? I18n.get('bulk_rssInvalidUrl') : 'Enter a URL starting with http:// or https://';
+
+  if (!feedUrl.startsWith('http://') && !feedUrl.startsWith('https://')) {
+    showStatus('error', invalidUrlText);
+    return;
+  }
+
+  let host;
+  try {
+    host = new URL(feedUrl).hostname;
+  } catch (e) {
+    showStatus('error', invalidUrlText);
+    return;
+  }
+
+  // Ask only for the feed's own host, but for both schemes — feeds routinely
+  // redirect http -> https, and the redirect needs its own permission
+  let granted;
+  try {
+    granted = await chrome.permissions.request({ origins: [`http://${host}/*`, `https://${host}/*`] });
+  } catch (e) {
+    showStatus('error', I18n ? I18n.get('bulk_rssLoadError') : 'Could not load the feed');
+    return;
+  }
+  if (!granted) return;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    rssFetchBtn.disabled = true;
+
+    const response = await fetch(feedUrl, { signal: controller.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const links = parseFeedLinks(await response.text(), feedUrl);
+
+    if (links.length === 0) {
+      const noLinksText = I18n ? I18n.get('bulk_rssNoLinks') : 'No links found in the feed';
+      showStatus('error', noLinksText);
+      return;
+    }
+
+    const feedLinks = links.join('\n');
+    linksInput.value = linksInput.value ? `${linksInput.value}\n${feedLinks}` : feedLinks;
+    updateLinkCount();
+    rssUrlInput.value = '';
+
+    const addedText = I18n ? I18n.get('bulk_rssLinksAdded', { count: links.length }) : `Links added: ${links.length}`;
+    showStatus('success', `✓ ${addedText}`);
+
+  } catch (error) {
+    const errorText = I18n ? I18n.get('bulk_rssLoadError') : 'Could not load the feed';
+    showStatus('error', errorText);
+  } finally {
+    clearTimeout(timeoutId);
+    rssFetchBtn.disabled = false;
+  }
+}
+
+// Extract entry links from an RSS 2.0 or Atom feed
+function parseFeedLinks(xmlText, feedUrl) {
+  const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+  if (doc.documentElement.nodeName === 'parsererror') return [];
+
+  const found = [];
+
+  // RSS 2.0: <item><link>https://...</link></item>
+  doc.querySelectorAll('item > link').forEach(link => found.push(link.textContent));
+
+  // Atom: <entry><link href="https://..."/></entry>, several links per entry are possible
+  doc.querySelectorAll('entry').forEach(entry => {
+    const candidates = [...entry.querySelectorAll('link[href]')];
+    const chosen = candidates.find(link => {
+      const rel = link.getAttribute('rel');
+      return !rel || rel === 'alternate';
+    }) || candidates[0];
+    if (chosen) found.push(chosen.getAttribute('href'));
+  });
+
+  // Feeds may use relative hrefs, so resolve everything against the feed URL first
+  const links = [];
+  for (const href of found) {
+    const trimmed = (href || '').trim();
+    if (!trimmed) continue;
+
+    let resolved;
+    try {
+      resolved = new URL(trimmed, feedUrl).href;
+    } catch (e) {
+      continue;
+    }
+
+    if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
+      links.push(resolved);
+    }
+  }
+
+  return [...new Set(links)];
 }
 
 // Update import buttons state

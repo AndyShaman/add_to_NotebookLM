@@ -4,7 +4,7 @@
     "description": "Extension name"
   },
   "extDescription": {
-    "message": "Import YouTube videos and web pages to NotebookLM with one click. Bulk import, playlist support, and more.",
+    "message": "100% free, no limits. Bulk import YouTube videos, playlists, comments and web pages to NotebookLM. No premium tier, no account.",
     "description": "Extension description"
   },
   "popup_currentPage": {
@@ -446,5 +446,47 @@
   "onboarding_github": {
     "message": "Source code on GitHub",
     "description": "Onboarding GitHub link label"
+  },
+  "popup_grabLinks": {
+    "message": "Grab all links from page",
+    "description": "Grab all links button text"
+  },
+  "popup_pageNotSupported": {
+    "message": "This page is not supported",
+    "description": "Error shown when the active page is not an http(s) page"
+  },
+  "popup_noLinksFound": {
+    "message": "No links found on this page",
+    "description": "Message shown when the page has no links to grab"
+  },
+  "bulk_loadFromRss": {
+    "message": "Load from RSS",
+    "description": "Load feed button text"
+  },
+  "bulk_rssUrlPlaceholder": {
+    "message": "RSS feed URL",
+    "description": "Feed URL input placeholder"
+  },
+  "bulk_rssInvalidUrl": {
+    "message": "Enter a URL starting with http:// or https://",
+    "description": "Error shown when the feed URL is not a valid http(s) URL"
+  },
+  "bulk_rssLoadError": {
+    "message": "Could not load the feed",
+    "description": "Error shown when the feed request fails"
+  },
+  "bulk_rssNoLinks": {
+    "message": "No links found in the feed",
+    "description": "Error shown when the feed has no usable links"
+  },
+  "bulk_rssLinksAdded": {
+    "message": "Links added: $COUNT$",
+    "description": "Success message after adding feed links",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
   }
 }

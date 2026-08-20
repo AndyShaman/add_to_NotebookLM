@@ -4,7 +4,7 @@
     "description": "Название расширения"
   },
   "extDescription": {
-    "message": "Импортируйте YouTube видео и веб-страницы в NotebookLM одним кликом. Массовый импорт, поддержка плейлистов и многое другое.",
+    "message": "Бесплатно и без лимитов. Массовый импорт YouTube видео, плейлистов, комментариев и веб-страниц в NotebookLM. Без платной версии.",
     "description": "Описание расширения"
   },
   "popup_currentPage": {
@@ -446,5 +446,47 @@
   "onboarding_github": {
     "message": "Исходный код на GitHub",
     "description": "Подпись ссылки на GitHub"
+  },
+  "popup_grabLinks": {
+    "message": "Собрать все ссылки со страницы",
+    "description": "Подпись кнопки сбора всех ссылок"
+  },
+  "popup_pageNotSupported": {
+    "message": "Эта страница не поддерживается",
+    "description": "Ошибка, если активная вкладка не http(s)-страница"
+  },
+  "popup_noLinksFound": {
+    "message": "Ссылки не найдены",
+    "description": "Сообщение, если на странице нет ссылок"
+  },
+  "bulk_loadFromRss": {
+    "message": "Загрузить из RSS",
+    "description": "Подпись кнопки загрузки фида"
+  },
+  "bulk_rssUrlPlaceholder": {
+    "message": "URL RSS-фида",
+    "description": "Плейсхолдер поля с адресом фида"
+  },
+  "bulk_rssInvalidUrl": {
+    "message": "Укажите URL, начинающийся с http:// или https://",
+    "description": "Ошибка, если адрес фида не является http(s)-ссылкой"
+  },
+  "bulk_rssLoadError": {
+    "message": "Не удалось загрузить фид",
+    "description": "Ошибка, если запрос фида не удался"
+  },
+  "bulk_rssNoLinks": {
+    "message": "В фиде не найдено ссылок",
+    "description": "Ошибка, если в фиде нет пригодных ссылок"
+  },
+  "bulk_rssLinksAdded": {
+    "message": "Добавлено ссылок: $COUNT$",
+    "description": "Сообщение об успешном добавлении ссылок из фида",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
   }
 }

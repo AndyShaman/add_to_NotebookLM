@@ -16,7 +16,7 @@
 document.addEventListener('DOMContentLoaded', init);
 
 // DOM elements
-let notebookSelect, addBtn, addPdfBtn, newNotebookBtn, bulkBtn, tabsBtn;
+let notebookSelect, addBtn, addPdfBtn, newNotebookBtn, bulkBtn, tabsBtn, grabLinksBtn;
 let accountSelect, statusDiv, currentUrlDiv, settingsBtn, openNotebookBtn;
 let newNotebookModal, newNotebookInput, modalCancel, modalCreate;
 let parseCommentsBtn, parseProgress, parseProgressText, cancelParseBtn;
@@ -41,6 +41,7 @@ async function init() {
   newNotebookBtn = document.getElementById('new-notebook-btn');
   bulkBtn = document.getElementById('bulk-btn');
   tabsBtn = document.getElementById('tabs-btn');
+  grabLinksBtn = document.getElementById('grab-links-btn');
   accountSelect = document.getElementById('account-select');
   statusDiv = document.getElementById('status');
   currentUrlDiv = document.getElementById('current-url');
@@ -63,6 +64,7 @@ async function init() {
   newNotebookBtn.addEventListener('click', showNewNotebookModal);
   bulkBtn.addEventListener('click', openBulkImport);
   tabsBtn.addEventListener('click', openTabsImport);
+  grabLinksBtn.addEventListener('click', handleGrabLinks);
   accountSelect.addEventListener('change', handleAccountChange);
   notebookSelect.addEventListener('change', handleNotebookChange);
   modalCancel.addEventListener('click', hideNewNotebookModal);
@@ -683,6 +685,68 @@ function openTabsImport() {
   chrome.tabs.create({
     url: chrome.runtime.getURL('app/app.html#tabs')
   });
+}
+
+// Grab every link from the active page and hand them to the bulk import page
+async function handleGrabLinks() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const url = tab?.url || '';
+
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    showStatus('error', t('popup_pageNotSupported', 'This page is not supported'));
+    return;
+  }
+
+  // Ask only for this site, not for every host
+  const origin = new URL(url).origin;
+  let granted;
+  try {
+    granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
+  } catch (e) {
+    showStatus('error', t('popup_pageNotSupported', 'This page is not supported'));
+    return;
+  }
+  if (!granted) return;
+
+  try {
+    grabLinksBtn.disabled = true;
+
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: extractPageLinks
+    });
+    const links = results[0]?.result || [];
+
+    if (links.length === 0) {
+      showStatus('error', t('popup_noLinksFound', 'No links found on this page'));
+      return;
+    }
+
+    await chrome.storage.local.set({ pendingLinks: links });
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('app/app.html')
+    });
+  } catch (error) {
+    showStatus('error', t('popup_pageNotSupported', 'This page is not supported'));
+  } finally {
+    grabLinksBtn.disabled = false;
+  }
+}
+
+// Function to be injected into the page to collect its links
+function extractPageLinks() {
+  const pageUrl = location.href.split('#')[0];
+  const links = new Set();
+
+  document.querySelectorAll('a[href]').forEach(a => {
+    const href = a.href;
+    if (!href.startsWith('http://') && !href.startsWith('https://')) return;
+    // Skip anchors pointing back at this same page
+    if (href.split('#')[0] === pageUrl) return;
+    links.add(href);
+  });
+
+  return [...links];
 }
 
 // Show status message
