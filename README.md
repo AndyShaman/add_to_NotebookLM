@@ -10,6 +10,8 @@
 </p>
 
 <p align="center">
+  <a href="https://chromewebstore.google.com/detail/add-to-notebooklm/pdkgjccfmjghjelcogecndopngnjhope"><img src="https://img.shields.io/chrome-web-store/v/pdkgjccfmjghjelcogecndopngnjhope?style=for-the-badge&logo=googlechrome&logoColor=white&label=Chrome%20Web%20Store&color=4285F4" alt="Chrome Web Store"></a>
+  &nbsp;
   <a href="https://t.me/AI_Handler"><img src="https://img.shields.io/badge/Telegram-канал автора-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram"></a>
   &nbsp;
   <a href="https://www.youtube.com/channel/UCLkP6wuW_P2hnagdaZMBtCw"><img src="https://img.shields.io/badge/YouTube-канал автора-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube"></a>
@@ -40,6 +42,10 @@
 - Русский и английский интерфейс
 
 ## Установка
+
+**Из Chrome Web Store (рекомендуется):** [Add to NotebookLM](https://chromewebstore.google.com/detail/add-to-notebooklm/pdkgjccfmjghjelcogecndopngnjhope) — установка в один клик, обновления автоматически.
+
+**Вручную (для разработки):**
 
 1. Скачайте или клонируйте репозиторий
 2. Откройте `chrome://extensions/`

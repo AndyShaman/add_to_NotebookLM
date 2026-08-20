@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "__MSG_extName__",
   "short_name": "Add to NotebookLM",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
 
