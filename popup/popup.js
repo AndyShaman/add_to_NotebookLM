@@ -339,10 +339,12 @@ async function handleAddToNotebook() {
         await chrome.storage.sync.set({ lastNotebook: notebookId });
         const videosAddedText = t('popup_videosAdded', 'videos added!');
         showStatus('success', `✓ ${videoUrls.length} ${videosAddedText}`);
+        await recordImportSuccess();
 
         setTimeout(() => {
           const notebook = notebooks.find(n => n.id === notebookId);
           showSuccessWithActions(notebook, videoUrls.length);
+          maybeShowReviewPrompt();
         }, 500);
       }
     } else {
@@ -362,10 +364,12 @@ async function handleAddToNotebook() {
         await chrome.storage.sync.set({ lastNotebook: notebookId });
         const successText = t('popup_success', 'Added successfully!');
         showStatus('success', `✓ ${successText}`);
+        await recordImportSuccess();
 
         setTimeout(() => {
           const notebook = notebooks.find(n => n.id === notebookId);
           showSuccessWithActions(notebook);
+          maybeShowReviewPrompt();
         }, 500);
       }
     }
@@ -399,10 +403,12 @@ async function handleAddAsPdf() {
     } else {
       await chrome.storage.sync.set({ lastNotebook: notebookId });
       showStatus('success', `✓ ${t('popup_pdfSuccess', 'Page added as PDF!')}`);
+      await recordImportSuccess();
 
       setTimeout(() => {
         const notebook = notebooks.find(n => n.id === notebookId);
         if (notebook) showSuccessWithActions(notebook);
+        maybeShowReviewPrompt();
       }, 500);
     }
   } catch (error) {
@@ -547,6 +553,55 @@ function showSuccessWithActions(notebook, videoCount = null, commentCount = null
   statusDiv.appendChild(actionsDiv);
 }
 
+// Count successful imports for the review prompt
+async function recordImportSuccess() {
+  const { importSuccessCount = 0 } = await chrome.storage.local.get('importSuccessCount');
+  await chrome.storage.local.set({ importSuccessCount: importSuccessCount + 1 });
+}
+
+// Ask for a Chrome Web Store review after 5 successful imports
+async function maybeShowReviewPrompt() {
+  const { importSuccessCount = 0, reviewPromptState, reviewPromptAsks = 0 } =
+    await chrome.storage.local.get(['importSuccessCount', 'reviewPromptState', 'reviewPromptAsks']);
+  if (importSuccessCount < 5 || reviewPromptState === 'done') return;
+  // The success message may have been replaced while storage was read
+  if (!statusDiv.classList.contains('success') || statusDiv.querySelector('.review-prompt')) return;
+
+  const promptDiv = document.createElement('div');
+  promptDiv.className = 'review-prompt';
+
+  const textDiv = document.createElement('div');
+  textDiv.textContent = t('review_prompt', 'Enjoying the extension? A review helps others find it.');
+
+  const actionsDiv = document.createElement('div');
+  actionsDiv.className = 'review-prompt-actions';
+
+  const rateBtn = document.createElement('button');
+  rateBtn.className = 'btn btn-secondary';
+  rateBtn.textContent = t('review_rate', 'Rate it ★');
+  rateBtn.addEventListener('click', async () => {
+    await chrome.storage.local.set({ reviewPromptState: 'done' });
+    promptDiv.remove();
+    chrome.tabs.create({ url: 'https://chromewebstore.google.com/detail/pdkgjccfmjghjelcogecndopngnjhope/reviews' });
+  });
+
+  const laterBtn = document.createElement('button');
+  laterBtn.className = 'review-later';
+  laterBtn.textContent = t('review_later', 'Not now');
+  laterBtn.addEventListener('click', async () => {
+    promptDiv.remove();
+    const update = { importSuccessCount: 0, reviewPromptAsks: reviewPromptAsks + 1 };
+    if (reviewPromptAsks >= 2) update.reviewPromptState = 'done';
+    await chrome.storage.local.set(update);
+  });
+
+  actionsDiv.appendChild(rateBtn);
+  actionsDiv.appendChild(laterBtn);
+  promptDiv.appendChild(textDiv);
+  promptDiv.appendChild(actionsDiv);
+  statusDiv.appendChild(promptDiv);
+}
+
 // Show new notebook modal
 function showNewNotebookModal() {
   newNotebookModal.classList.remove('hidden');
@@ -621,6 +676,8 @@ async function handleCreateNotebook() {
     } else {
       const successText = t('popup_success', 'Created and added!');
       showStatus('success', `✓ ${successText}`);
+      await recordImportSuccess();
+      maybeShowReviewPrompt();
     }
 
   } catch (error) {
@@ -880,6 +937,7 @@ function updateParseUI(status) {
     } else {
       showStatus('success', `✓ ${count} comments parsed`);
     }
+    recordImportSuccess().then(maybeShowReviewPrompt);
   } else if (phase === 'error') {
     stopProgressPolling();
     parseProgress.classList.add('hidden');

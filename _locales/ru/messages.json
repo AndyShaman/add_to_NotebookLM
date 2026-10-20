@@ -488,5 +488,17 @@
         "example": "12"
       }
     }
+  },
+  "review_prompt": {
+    "message": "Нравится расширение? Отзыв помогает другим его найти.",
+    "description": "Просьба оставить отзыв в Chrome Web Store после нескольких успешных импортов"
+  },
+  "review_rate": {
+    "message": "Оценить ★",
+    "description": "Кнопка, открывающая страницу отзывов в Chrome Web Store"
+  },
+  "review_later": {
+    "message": "Не сейчас",
+    "description": "Кнопка, скрывающая просьбу об отзыве"
   }
 }

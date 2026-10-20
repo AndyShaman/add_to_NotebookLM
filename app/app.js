@@ -589,6 +589,7 @@ async function importUrls(notebookId, urls) {
         ✓ ${successText} (${imported})
         <br><a href="${notebookUrl}" target="_blank">${openText} →</a>
       `);
+      await recordImportSuccess();
 
       // Clear inputs
       if (currentTab === 'links') {
@@ -618,6 +619,12 @@ async function importUrls(notebookId, urls) {
   } finally {
     updateImportButtons();
   }
+}
+
+// Count successful imports for the review prompt shown in the popup
+async function recordImportSuccess() {
+  const { importSuccessCount = 0 } = await chrome.storage.local.get('importSuccessCount');
+  await chrome.storage.local.set({ importSuccessCount: importSuccessCount + 1 });
 }
 
 // Show progress bar

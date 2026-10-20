@@ -488,5 +488,17 @@
         "example": "12"
       }
     }
+  },
+  "review_prompt": {
+    "message": "Enjoying the extension? A review helps others find it.",
+    "description": "Request for a Chrome Web Store review after several successful imports"
+  },
+  "review_rate": {
+    "message": "Rate it ★",
+    "description": "Button that opens the Chrome Web Store review page"
+  },
+  "review_later": {
+    "message": "Not now",
+    "description": "Button that dismisses the review request"
   }
 }
