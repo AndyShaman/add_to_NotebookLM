@@ -447,6 +447,10 @@
     "message": "Source code on GitHub",
     "description": "Onboarding GitHub link label"
   },
+  "onboarding_website": {
+    "message": "Author's website",
+    "description": "Onboarding website link label"
+  },
   "about_website": {
     "message": "Website",
     "description": "Link to the author's website"
