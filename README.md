@@ -15,9 +15,11 @@
   <a href="https://t.me/AI_Handler"><img src="https://img.shields.io/badge/Telegram-Author's_Channel-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram"></a>
   &nbsp;
   <a href="https://www.youtube.com/channel/UCLkP6wuW_P2hnagdaZMBtCw"><img src="https://img.shields.io/badge/YouTube-Author's_Channel-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube"></a>
+  &nbsp;
+  <a href="https://ai-handler.com/add-to-notebooklm/"><img src="https://img.shields.io/badge/Website-ai--handler.com-007AFF?style=for-the-badge" alt="Website"></a>
 </p>
 
-Website: https://andyshaman.github.io/add-to-notebooklm/
+Website: https://ai-handler.com/add-to-notebooklm/
 
 Add to NotebookLM is a free Chrome extension that imports sources into Google NotebookLM (Gemini Notebook). It adds the current page in one click and bulk-imports YouTube videos, whole playlists and channels, YouTube comments, web pages, open browser tabs, all links from a page and links from RSS feeds. There are no limits, no paid tier, no account and no ads. The extension talks directly from your browser to your own notebook: it uses no servers of its own and collects no analytics or telemetry. The code is open source under the MIT license.
 
@@ -117,7 +119,11 @@ NotebookLM and Gemini are trademarks of Google LLC. This extension is an indepen
   <a href="https://t.me/AI_Handler"><img src="https://img.shields.io/badge/Telegram-канал автора-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram"></a>
   &nbsp;
   <a href="https://www.youtube.com/channel/UCLkP6wuW_P2hnagdaZMBtCw"><img src="https://img.shields.io/badge/YouTube-канал автора-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube"></a>
+  &nbsp;
+  <a href="https://ai-handler.com/add-to-notebooklm/"><img src="https://img.shields.io/badge/Сайт-ai--handler.com-007AFF?style=for-the-badge" alt="Сайт"></a>
 </p>
+
+Сайт: https://ai-handler.com/add-to-notebooklm/
 
 Add to NotebookLM — бесплатное Chrome-расширение для удобной работы с Google NotebookLM (Gemini Notebook). Добавляйте веб-страницы, YouTube-видео, комментарии и целые плейлисты в нотбуки в один клик. Расширение массово импортирует видео, плейлисты и каналы YouTube, комментарии, веб-страницы, открытые вкладки, все ссылки со страницы и ссылки из RSS-фидов. Без лимитов, без платного тарифа, без регистрации и рекламы. Расширение работает напрямую из вашего браузера с вашим же нотбуком: без собственных серверов, без аналитики и телеметрии. Открытый код, лицензия MIT.
 
