@@ -447,6 +447,10 @@
     "message": "Исходный код на GitHub",
     "description": "Подпись ссылки на GitHub"
   },
+  "about_website": {
+    "message": "Сайт",
+    "description": "Ссылка на сайт автора"
+  },
   "popup_grabLinks": {
     "message": "Собрать все ссылки со страницы",
     "description": "Подпись кнопки сбора всех ссылок"

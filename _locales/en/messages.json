@@ -447,6 +447,10 @@
     "message": "Source code on GitHub",
     "description": "Onboarding GitHub link label"
   },
+  "about_website": {
+    "message": "Website",
+    "description": "Link to the author's website"
+  },
   "popup_grabLinks": {
     "message": "Grab all links from page",
     "description": "Grab all links button text"
